@@ -43,10 +43,10 @@ public class SetEffectRocky extends SetEffect {
 					EnchantmentHelper.getDepthStrider(player) == 0) {
 				player.setSprinting(false); // prevent sprinting
 				player.setDeltaMovement(
-						motion.x()*(player.isOnGround() ? 0.14d : 1d), 
+						motion.x()*(player.onGround() ? 0.14d : 1d), 
 						motion.y(), 
-						motion.z()*(player.isOnGround() ? 0.14d : 1d));
-				if (player.isOnGround())
+						motion.z()*(player.onGround() ? 0.14d : 1d));
+				if (player.onGround())
 					player.hurtMarked = true;
 				player.hasImpulse = true;
 			}

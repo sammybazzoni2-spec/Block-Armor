@@ -4,7 +4,6 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 
 import com.google.common.collect.Sets;
-import com.mojang.math.Vector3d;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -91,7 +90,7 @@ public class SetEffectEnder extends SetEffect {
 				}
 			// no valid pos found
 			if (player instanceof ServerPlayer) {
-				((ServerPlayer)player).connection.send(new ClientboundSoundPacket(Holder.direct(SoundEvents.NOTE_BLOCK_BASS), SoundSource.PLAYERS, player.getX(), player.getY(), player.getZ(), 1.0F, world.random.nextFloat() + 0.5F, player.level().random.nextLong())); 	
+				((ServerPlayer)player).connection.send(new ClientboundSoundPacket(SoundEvents.NOTE_BLOCK_BASS, SoundSource.PLAYERS, player.getX(), player.getY(), player.getZ(), 1.0F, world.random.nextFloat() + 0.5F, player.level().random.nextLong())); 	
 				this.setCooldown(player, 10);
 			}
 		}

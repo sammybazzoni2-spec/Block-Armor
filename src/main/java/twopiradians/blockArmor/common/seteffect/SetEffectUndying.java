@@ -40,7 +40,7 @@ public class SetEffectUndying extends SetEffect {
 					// cooldown, damage, sound
 					SetEffect.UNDYING.setCooldown(player, 6000);
 					SetEffect.UNDYING.damageArmor(player, 100, true);
-					player.connection.send(new ClientboundSoundPacket(SoundEvents.RESPAWN_ANCHOR_DEPLETE, SoundSource.BLOCKS, (double)player.getX(), (double)player.getY(), (double)player.getZ(), 1.0F, 1.0F));
+					player.connection.send(new ClientboundSoundPacket(SoundEvents.RESPAWN_ANCHOR_DEPLETE, SoundSource.BLOCKS, player.getX(), player.getY(), player.getZ(), 1.0F, 1.0F, player.level().random.nextLong()));
 					// cancel event so player doesn't die
 					event.setCanceled(true);
 				}

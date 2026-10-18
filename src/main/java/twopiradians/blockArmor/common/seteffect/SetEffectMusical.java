@@ -27,7 +27,7 @@ public class SetEffectMusical extends SetEffect {
 			double velX = player.getX() - player.xCloak;
 			double velZ = player.getZ() - player.zCloak;
 			double motion = Math.sqrt(velX*velX + velZ*velZ);
-			if (player.isOnGround() && motion > 0.1d) {
+			if (player.onGround() && motion > 0.1d) {
 				this.setCooldown(player, 10);
 				
 				((ServerLevel)world).sendParticles(ParticleTypes.NOTE, 

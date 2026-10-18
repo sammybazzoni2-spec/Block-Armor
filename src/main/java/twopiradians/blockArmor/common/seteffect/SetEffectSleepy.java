@@ -55,12 +55,12 @@ public class SetEffectSleepy extends SetEffect {
 				}
 
 				if (player instanceof ServerPlayer) 
-					((ServerPlayer)player).connection.send(new ClientboundSoundPacket(Holder.direct(SoundEvents.NOTE_BLOCK_CHIME), SoundSource.PLAYERS, player.getX(), player.getY(), player.getZ(), 0.5F, 1.4f, player.level().random.nextLong())); 	
+					((ServerPlayer)player).connection.send(new ClientboundSoundPacket(SoundEvents.NOTE_BLOCK_CHIME, SoundSource.PLAYERS, player.getX(), player.getY(), player.getZ(), 0.5F, 1.4f, player.level().random.nextLong())); 	
 				this.setCooldown(player, 100);
 			}
 			// not night time
 			else if (player instanceof ServerPlayer) {
-				((ServerPlayer)player).connection.send(new ClientboundSoundPacket(Holder.direct(SoundEvents.NOTE_BLOCK_BASS), SoundSource.PLAYERS, player.getX(), player.getY(), player.getZ(), 1.0F, world.random.nextFloat() + 0.5F, player.level().random.nextLong())); 
+				((ServerPlayer)player).connection.send(new ClientboundSoundPacket(SoundEvents.NOTE_BLOCK_BASS, SoundSource.PLAYERS, player.getX(), player.getY(), player.getZ(), 1.0F, world.random.nextFloat() + 0.5F, player.level().random.nextLong())); 
 				this.setCooldown(player, 10);
 			}
 		}

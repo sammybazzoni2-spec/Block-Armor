@@ -39,7 +39,7 @@ public class SetEffectLightweight extends SetEffect
 	@Override
 	public void onArmorTick(Level world, Player player, ItemStack stack) {
 		super.onArmorTick(world, player, stack);
-		if (!player.isShiftKeyDown() && ArmorSet.getFirstSetItem(player, this) == stack && player.getDeltaMovement().y() < 0 && !player.isOnGround() &&
+		if (!player.isShiftKeyDown() && ArmorSet.getFirstSetItem(player, this) == stack && player.getDeltaMovement().y() < 0 && !player.onGround() &&
 				world.isEmptyBlock(player.blockPosition().below(2))) {
 
 			if (world.isClientSide && player.fallDistance > 1 && player.getDeltaMovement().y() < -0.3d) {

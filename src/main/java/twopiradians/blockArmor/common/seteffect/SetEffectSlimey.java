@@ -36,7 +36,7 @@ public class SetEffectSlimey extends SetEffect {
 
 		if (ArmorSet.getFirstSetItem(player, this) == stack && world.isClientSide && !player.isShiftKeyDown()) {	
 			//increased movement speed while bouncing
-			if (!player.isOnGround() && !player.isFallFlying()) 
+			if (!player.onGround() && !player.isFallFlying()) 
 				player.setDeltaMovement(player.getDeltaMovement().x*1.07d, player.getDeltaMovement().y, player.getDeltaMovement().z*1.07d);
 		
 			if (!player.getCooldowns().isOnCooldown(stack.getItem()) && player.horizontalCollision 

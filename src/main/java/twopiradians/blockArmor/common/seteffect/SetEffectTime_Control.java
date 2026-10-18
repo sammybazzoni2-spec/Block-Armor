@@ -64,7 +64,7 @@ public class SetEffectTime_Control extends SetEffect {
 			else if (type == Type.STOP && world.getGameRules().getBoolean(GameRules.RULE_DAYLIGHT)) {
 				setWorldTime(world, world.getDayTime() - 1);
 				if (player.tickCount % 8 == 0)
-				world.playSound(player, player.blockPosition(), SoundEvents.NOTE_BLOCK_SNARE, SoundSource.PLAYERS, 0.2f, 0f);
+				world.playSound(player, player.blockPosition(), SoundEvents.NOTE_BLOCK_SNARE.value(), SoundSource.PLAYERS, 0.2f, 0f);
 			}
 			else if (type == Type.ACCELERATE) {
 				setWorldTime(world, world.getDayTime() + 19);

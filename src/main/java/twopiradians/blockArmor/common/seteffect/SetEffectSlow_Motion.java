@@ -28,7 +28,7 @@ public class SetEffectSlow_Motion extends SetEffect
 
 		// particles
 		if (world.isClientSide && world.random.nextInt(10) == 0 && 
-				(player.getDeltaMovement().x != 0 || player.getDeltaMovement().z != 0 || !player.isOnGround())) 
+				(player.getDeltaMovement().x != 0 || player.getDeltaMovement().z != 0 || !player.onGround())) 
 			world.addParticle(ParticleTypes.SOUL, player.getX()+world.random.nextDouble()-0.5D, 
 					player.getY()+world.random.nextDouble()+0.3d, player.getZ()+world.random.nextDouble()-0.5D, 
 					0, 0, 0);
