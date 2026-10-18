@@ -123,6 +123,12 @@ public final class ModelBAItem {
 		return numIcons;
 	}
 
+	private static boolean loggedDiagnostics = false;
+
+	private static boolean isMissing(TextureAtlasSprite sprite) {
+		return sprite.contents().name().equals(net.minecraft.client.renderer.texture.MissingTextureAtlasSprite.getLocation());
+	}
+
 	/**Transforms of item/generated models (from a vanilla item) so armor displays like a flat item*/
 	private static ItemTransforms getGeneratedTransforms(Map<ResourceLocation, BakedModel> models) {
 		BakedModel stick = models.get(new ModelResourceLocation(new ResourceLocation("minecraft", "stick"), "inventory"));
