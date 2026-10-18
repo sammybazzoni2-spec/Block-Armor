@@ -62,14 +62,14 @@ public class SetEffectSlimey extends SetEffect {
 
 	@SubscribeEvent
 	public static void onEvent(LivingFallEvent event) {
-		if (ArmorSet.hasSetEffect(event.getEntityLiving(), SetEffect.SLIMEY)) {
+		if (ArmorSet.hasSetEffect(event.getEntity(), SetEffect.SLIMEY)) {
 			if (!(event.getEntity() instanceof Player))
 				return;
 
 			Player player = (Player) event.getEntity();
 			if (!player.isShiftKeyDown()) {
 				event.setDamageMultiplier(0);
-				if (player.level.isClientSide) {
+				if (player.level().isClientSide) {
 					if (event.getDistance() <= 40 && event.getDistance() > 2D) 
 						player.setDeltaMovement(player.getDeltaMovement().x, Math.abs(player.getDeltaMovement().y * 0.9d), player.getDeltaMovement().z);
 					else if (event.getDistance() > 40 && event.getDistance() <= 100) 
@@ -78,7 +78,7 @@ public class SetEffectSlimey extends SetEffect {
 						player.setDeltaMovement(player.getDeltaMovement().x, Math.abs(player.getDeltaMovement().y * 0.9d * 2D), player.getDeltaMovement().z);
 				
 					if (event.getDistance() > 2D)
-						player.level.playSound(player, player.getX(), player.getY(), player.getZ(), 
+						player.level().playSound(player, player.getX(), player.getY(), player.getZ(), 
 								event.getDistance() > 40 ? SoundEvents.SLIME_JUMP : SoundEvents.SLIME_SQUISH, 
 										SoundSource.PLAYERS, 0.4F, 1.0F);
 					player.hasImpulse = true;
@@ -97,7 +97,7 @@ public class SetEffectSlimey extends SetEffect {
 
 	@SubscribeEvent
 	public static void onEvent(TickEvent.PlayerTickEvent event) {
-		if (bouncingEntity != null && event.player == bouncingEntity && bouncingEntity.level.isClientSide &&
+		if (bouncingEntity != null && event.player == bouncingEntity && bouncingEntity.level().isClientSide &&
 				event.phase == TickEvent.Phase.END) {
 			bouncingEntity.setDeltaMovement(bouncingEntity.getDeltaMovement().x, motionY, bouncingEntity.getDeltaMovement().z);
 			bouncingEntity.fallDistance = 0;

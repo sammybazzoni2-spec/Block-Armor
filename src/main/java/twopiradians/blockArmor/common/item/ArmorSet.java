@@ -6,7 +6,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Random;
 import java.util.TreeSet;
 import java.util.UUID;
 
@@ -22,13 +21,14 @@ import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
 import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite.AnimatedTexture;
+import net.minecraft.client.renderer.block.BlockModelShaper;
 import net.minecraft.client.resources.model.BakedModel;
+import net.minecraft.util.RandomSource;
+import net.minecraftforge.client.model.data.ModelData;
+import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.Tuple;
@@ -49,7 +49,7 @@ import net.minecraft.world.level.block.BushBlock;
 import net.minecraft.world.level.block.CropBlock;
 import net.minecraft.world.level.block.InfestedBlock;
 import net.minecraft.world.level.block.LiquidBlock;
-import net.minecraft.world.level.block.OreBlock;
+import net.minecraft.world.level.block.DropExperienceBlock;
 import net.minecraft.world.level.block.RedstoneLampBlock;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.ShulkerBoxBlock;
@@ -70,6 +70,7 @@ import twopiradians.blockArmor.common.config.Config;
 import twopiradians.blockArmor.common.seteffect.SetEffect;
 import twopiradians.blockArmor.creativetab.BlockArmorCreativeTab;
 import twopiradians.blockArmor.utils.BlockUtils;
+import twopiradians.blockArmor.utils.SpriteUtils;
 
 @Mod.EventBusSubscriber
 @SuppressWarnings({ "deprecation" })
@@ -352,6 +353,9 @@ public class ArmorSet {
 	/**Minecraft's default missing texture sprite, assigned in initTextures()*/
 	@OnlyIn(Dist.CLIENT)
 	public static TextureAtlasSprite missingSprite;
+	/**Animation states of animated block sprites - reset when textures are re-mapped*/
+	@OnlyIn(Dist.CLIENT)
+	public static java.util.IdentityHashMap<TextureAtlasSprite, Object> spriteTickers;
 	/**Map of player UUID to their worn set effects*/
 	private static HashMap<UUID, HashSet<SetEffect>> playerSetEffectsClient = Maps.newHashMap();
 	/**Map of player UUID to their worn set effects*/
@@ -391,7 +395,7 @@ public class ArmorSet {
 		this.block = ((BlockItem) item).getBlock();
 		this.registryName = ArmorSet.getItemRegistryName(this.item);
 		try {
-			ResourceLocation loc = this.item.getRegistryName();
+			ResourceLocation loc = ForgeRegistries.ITEMS.getKey(this.item);
 			this.modid = loc.getNamespace().toLowerCase();
 			if (!this.modid.equals("minecraft"))
 				isFromModdedBlock = true;
@@ -538,13 +542,13 @@ public class ArmorSet {
 		if (item instanceof BlockArmorItem)
 			item = ((BlockArmorItem)item).set.item;
 
-		return new TranslatableComponent(item.getDescriptionId()).getString();
+		return Component.translatable(item.getDescriptionId()).getString();
 	}
 
 	/**Used to uniformly create registry name*/
 	public static String getItemRegistryName(Item item) {
 		try {
-			String registryName = item.getRegistryName().getPath().toLowerCase().replace(" ", "_");
+			String registryName = ForgeRegistries.ITEMS.getKey(item).getPath().toLowerCase().replace(" ", "_");
 			return registryName;
 		} 
 		catch (Exception e) {
@@ -569,18 +573,18 @@ public class ArmorSet {
 		if (slot != null)
 			switch (slot) {
 			case HEAD:
-				return new TranslatableComponent("item.blockarmor.helmet", name);
+				return Component.translatable("item.blockarmor.helmet", name);
 			case CHEST:
-				return new TranslatableComponent("item.blockarmor.chestplate", name);
+				return Component.translatable("item.blockarmor.chestplate", name);
 			case LEGS:
-				return new TranslatableComponent("item.blockarmor.leggings", name);
+				return Component.translatable("item.blockarmor.leggings", name);
 			case FEET:
-				return new TranslatableComponent("item.blockarmor.boots", name);
+				return Component.translatable("item.blockarmor.boots", name);
 			default:
 				break;
 			}
 
-		return new TextComponent(name);
+		return Component.literal(name);
 	}
 
 	/**Returns first piece of armor of the entity's worn set, or null*/
@@ -606,8 +610,8 @@ public class ArmorSet {
 
 	/**Returns the active set effects of the armor that the entity is wearing*/
 	public static HashSet<SetEffect> getWornSetEffects(LivingEntity entity) {
-		return entity != null && getPlayerSetEffects(entity.level.isClientSide).containsKey(entity.getUUID()) ?
-				getPlayerSetEffects(entity.level.isClientSide).get(entity.getUUID()) : Sets.newHashSet();
+		return entity != null && getPlayerSetEffects(entity.level().isClientSide).containsKey(entity.getUUID()) ?
+				getPlayerSetEffects(entity.level().isClientSide).get(entity.getUUID()) : Sets.newHashSet();
 	}
 
 	/**Does this entity have this worn set effect type active*/
@@ -645,7 +649,7 @@ public class ArmorSet {
 			// manually added blocks (only vanilla cuz we're overriding the textures)
 			if ((block instanceof ShulkerBoxBlock ||
 					block instanceof BedBlock) && 
-					block.getRegistryName().getNamespace().equals("minecraft")) {
+					ForgeRegistries.BLOCKS.getKey(block).getNamespace().equals("minecraft")) {
 				//BlockArmor.LOGGER.debug("Valid "+itemIn.toString()+": manual");
 				return true;
 			}
@@ -655,8 +659,8 @@ public class ArmorSet {
 					return true;
 				}
 			String displayName = getNormalDisplayName(itemIn);
-			String registryName = item.getRegistryName().getPath();
-			String modid = item.getRegistryName().getNamespace();
+			String registryName = ForgeRegistries.ITEMS.getKey(item).getPath();
+			String modid = ForgeRegistries.ITEMS.getKey(item).getNamespace();
 			// bad modded item, ore/ingot, or unnamed
 			if (modid.contains("one_point_twelve_concrete") ||
 					modid.contains("railcraft") ||
@@ -672,7 +676,7 @@ public class ArmorSet {
 			// bad blocks
 			if (block instanceof LiquidBlock || 
 					block instanceof BaseEntityBlock || 
-					block instanceof OreBlock || 
+					block instanceof DropExperienceBlock || 
 					block instanceof CropBlock || 
 					block instanceof BushBlock ||
 					block == Blocks.BARRIER || 
@@ -689,7 +693,7 @@ public class ArmorSet {
 				return false;
 			}
 			// bad modded items
-			registryName = block.getRegistryName().toString();
+			registryName = ForgeRegistries.BLOCKS.getKey(block).toString();
 			if (registryName.equalsIgnoreCase("evilcraft:darkBlock") || 
 					registryName.equalsIgnoreCase("evilcraft:obscuredGlass") ||
 					registryName.equalsIgnoreCase("evilcraft:hardenedBlood") ||
@@ -736,23 +740,9 @@ public class ArmorSet {
 			this.enabled = true;
 
 		BlockArmorItem[] armors = new BlockArmorItem[] {this.helmet, this.chestplate, this.leggings, this.boots};
-		for (BlockArmorItem armor : armors) {
-			if (armor != null) {
-				//add to tab
-				if (isFromModdedBlock) {
-					if (BlockArmorCreativeTab.moddedTab == null)
-						BlockArmorCreativeTab.moddedTab = new BlockArmorCreativeTab("blockArmorModded");
-					BlockArmorCreativeTab.moddedTab.orderedStacks.add(new ItemStack(armor));
-					armor.group = BlockArmorCreativeTab.moddedTab;
-				}
-				else {
-					if (BlockArmorCreativeTab.vanillaTab == null)
-						BlockArmorCreativeTab.vanillaTab = new BlockArmorCreativeTab("blockArmorVanilla");
-					BlockArmorCreativeTab.vanillaTab.orderedStacks.add(new ItemStack(armor));
-					armor.group = BlockArmorCreativeTab.vanillaTab;
-				}
-			}
-		}
+		for (BlockArmorItem armor : armors) 
+			if (armor != null) 
+				(isFromModdedBlock ? BlockArmorCreativeTab.MODDED_STACKS : BlockArmorCreativeTab.VANILLA_STACKS).add(new ItemStack(armor));
 
 		return true;
 	}
@@ -766,24 +756,10 @@ public class ArmorSet {
 
 		BlockArmorItem[] armors = new BlockArmorItem[] {this.helmet, this.chestplate, this.leggings, this.boots};
 		for (BlockArmorItem armor : armors) {
-			//remove from creative tab
-			armor.group = null;
-
-			//remove from vanilla tab
-			if (BlockArmorCreativeTab.vanillaTab != null && BlockArmorCreativeTab.vanillaTab.orderedStacks != null)
-				for (ItemStack tabStack : BlockArmorCreativeTab.vanillaTab.orderedStacks)
-					if (tabStack.getItem() == armor) {
-						BlockArmorCreativeTab.vanillaTab.orderedStacks.remove(tabStack);
-						break;
-					}
-
-			//remove from modded tab
-			if (BlockArmorCreativeTab.moddedTab != null && BlockArmorCreativeTab.moddedTab.orderedStacks != null)
-				for (ItemStack tabStack : BlockArmorCreativeTab.moddedTab.orderedStacks)
-					if (tabStack.getItem() == armor) {
-						BlockArmorCreativeTab.moddedTab.orderedStacks.remove(tabStack);
-						break;
-					}
+			if (armor == null)
+				continue;
+			BlockArmorCreativeTab.VANILLA_STACKS.removeIf(tabStack -> tabStack.getItem() == armor);
+			BlockArmorCreativeTab.MODDED_STACKS.removeIf(tabStack -> tabStack.getItem() == armor);
 		}
 
 		return true;
@@ -794,9 +770,10 @@ public class ArmorSet {
 	public Tuple<Integer, Boolean> initTextures() {
 		boolean missingTextures = false;
 
-		if (missingSprite == null)
-			missingSprite = MissingTextureAtlasSprite
-			.newInstance(new TextureAtlas(MissingTextureAtlasSprite.getLocation()), 0, 16, 16, 0, 0);
+		TextureAtlas blockAtlas = Minecraft.getInstance().getModelManager().getAtlas(TextureAtlas.LOCATION_BLOCKS);
+		missingSprite = blockAtlas.getSprite(MissingTextureAtlasSprite.getLocation());
+		if (spriteTickers == null)
+			spriteTickers = SpriteUtils.findTickers(blockAtlas);
 
 		int numTextures = 0;
 		this.textureInfo = Maps.newHashMap();
@@ -809,9 +786,9 @@ public class ArmorSet {
 		//Gets textures from item model's BakedQuads (textures for each side)
 		List<BakedQuad> list = new ArrayList<BakedQuad>();
 		try {
-			BakedModel model = Minecraft.getInstance().getBlockRenderer().getBlockModel(state);
+			BakedModel model = Minecraft.getInstance().getModelManager().getModel(BlockModelShaper.stateToModelLocation(state));
 
-			Random rand = new Random();
+			RandomSource rand = RandomSource.create();
 			//getting quads may throw exception if a mod's modeler doesn't obey @Nullable
 			list.addAll(model.getQuads(state, null, rand));
 			for (Direction facing : Direction.values()) 
@@ -819,32 +796,31 @@ public class ArmorSet {
 
 			for (BakedQuad quad : list) {
 				TextureAtlasSprite sprite = quad.getSprite();
-				AnimatedTexture animatedTexture = (sprite.getFrameCount() > 1 && sprite.getAnimationTicker() instanceof AnimatedTexture ? (AnimatedTexture) sprite.getAnimationTicker() : null); 
-				//List<AnimationFrame> animationFrames = animation == null ? null : (List<AnimationFrame>) ANIMATION_FRAMES_FIELD.get(animation);
+				Object animationState = spriteTickers.get(sprite);
 				int color = quad.isTinted() ? Minecraft.getInstance().getItemColors().getColor(this.getStack(), quad.getTintIndex()) : -1;
 
-				if (sprite.getName().toString().contains("overlay")) //overlays not supported by forge so we can't account for them
+				if (sprite.contents().name().toString().contains("overlay")) //overlays not supported by forge so we can't account for them
 					continue;
 
 				if (quad.getDirection() == Direction.UP) { //top
 					if (sprite != missingSprite)
 						numTextures++;
-					this.textureInfo.put(EquipmentSlot.HEAD, new TextureInfo(sprite, color, animatedTexture));
+					this.textureInfo.put(EquipmentSlot.HEAD, new TextureInfo(sprite, color, animationState));
 				}
 				else if (quad.getDirection() == Direction.NORTH) { //front
 					if (sprite != missingSprite)
 						numTextures++;
-					this.textureInfo.put(EquipmentSlot.CHEST, new TextureInfo(sprite, color, animatedTexture));
+					this.textureInfo.put(EquipmentSlot.CHEST, new TextureInfo(sprite, color, animationState));
 				}
 				else if (quad.getDirection() == Direction.SOUTH) { //back
 					if (sprite != missingSprite)
 						numTextures++;
-					this.textureInfo.put(EquipmentSlot.LEGS, new TextureInfo(sprite, color, animatedTexture));
+					this.textureInfo.put(EquipmentSlot.LEGS, new TextureInfo(sprite, color, animationState));
 				}
 				else if (quad.getDirection() == Direction.DOWN) { //bottom
 					if (sprite != missingSprite)
 						numTextures++;
-					this.textureInfo.put(EquipmentSlot.FEET, new TextureInfo(sprite, color, animatedTexture));
+					this.textureInfo.put(EquipmentSlot.FEET, new TextureInfo(sprite, color, animationState));
 				}
 			}
 		}
@@ -859,7 +835,8 @@ public class ArmorSet {
 				ResourceLocation longLoc = TEXTURE_OVERRIDES.get(block).overrides.get(slot).longLoc;
 				try {
 					// look for override texture
-					Minecraft.getInstance().getResourceManager().getResource(longLoc); //does texture exist?
+					if (Minecraft.getInstance().getResourceManager().getResource(longLoc).isEmpty()) //does texture exist?
+						throw new Exception("not found");
 					TextureAtlasSprite sprite = Minecraft.getInstance().getModelManager().getAtlas(TextureAtlas.LOCATION_BLOCKS).getSprite(shortLoc);
 					this.textureInfo.put(slot, new TextureInfo(sprite, TEXTURE_OVERRIDES.get(block).overrides.get(slot).color, null));
 					//BlockArmor.LOGGER.info("Override texture for "+this.stack.getDisplayName().getString()+" "+slot.getName()+" found at: "+longLoc);
@@ -892,11 +869,11 @@ public class ArmorSet {
 	/**Call onStop for set effects on logout - only called serverside in SSP*/
 	@SubscribeEvent
 	public static void onEvent(PlayerEvent.PlayerLoggedOutEvent event) {
-		HashMap<UUID, HashSet<SetEffect>> playerSetEffects = getPlayerSetEffects(event.getPlayer().level.isClientSide);
-		if (playerSetEffects.containsKey(event.getPlayer().getUUID())) {
-			for (SetEffect effect : playerSetEffects.get(event.getPlayer().getUUID()))
-				effect.onStop(event.getPlayer());
-			playerSetEffects.remove(event.getPlayer().getUUID());
+		HashMap<UUID, HashSet<SetEffect>> playerSetEffects = getPlayerSetEffects(event.getEntity().level().isClientSide);
+		if (playerSetEffects.containsKey(event.getEntity().getUUID())) {
+			for (SetEffect effect : playerSetEffects.get(event.getEntity().getUUID()))
+				effect.onStop(event.getEntity());
+			playerSetEffects.remove(event.getEntity().getUUID());
 		}
 	}
 

@@ -58,15 +58,15 @@ public class SetEffectHealth_Boost extends SetEffect {
 	/**Restore health when player logging in with health armor*/
 	@SubscribeEvent
 	public static void onLogin(PlayerEvent.PlayerLoggedInEvent event) {		
-		if (!event.getPlayer().level.isClientSide && event.getPlayer() instanceof ServerPlayer)
-			playersToCheck.add((ServerPlayer) event.getPlayer());
+		if (!event.getEntity().level().isClientSide && event.getEntity() instanceof ServerPlayer)
+			playersToCheck.add((ServerPlayer) event.getEntity());
 	}
 	
 	/**Restore health when player respawned with health armor on*/
 	@SubscribeEvent
 	public static void onRespawn(PlayerEvent.PlayerRespawnEvent event) {		
-		if (!event.getPlayer().level.isClientSide && event.getPlayer() instanceof ServerPlayer)
-			playersToCheck.add((ServerPlayer) event.getPlayer());
+		if (!event.getEntity().level().isClientSide && event.getEntity() instanceof ServerPlayer)
+			playersToCheck.add((ServerPlayer) event.getEntity());
 	}
 
 	/**Can be overwritten to return a new instance depending on the given block*/

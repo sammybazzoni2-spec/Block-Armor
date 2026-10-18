@@ -2,15 +2,13 @@ package twopiradians.blockArmor.common.block;
 
 import java.util.ArrayList;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.resources.model.ModelResourceLocation;
-import net.minecraft.world.item.Item;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
-import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus;
-import net.minecraftforge.registries.IForgeRegistry;
+import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.registries.RegisterEvent;
 import twopiradians.blockArmor.common.BlockArmor;
 
 public class ModBlocks {
@@ -23,23 +21,13 @@ public class ModBlocks {
 	public static class RegistrationHandler {
 
 		@SubscribeEvent
-		public static void registerBlocks(final RegistryEvent.Register<Block> event) {
-			register(event.getRegistry(), MOVING_LIGHT_SOURCE, "moving_light_source");
+		public static void registerBlocks(final RegisterEvent event) {
+			event.register(ForgeRegistries.Keys.BLOCKS, helper -> {
+				allBlocks.add(MOVING_LIGHT_SOURCE);
+				helper.register(new ResourceLocation(BlockArmor.MODID, "moving_light_source"), MOVING_LIGHT_SOURCE);
+			});
 		}
 
-		private static void register(IForgeRegistry<Block> registry, Block block, String blockName) {
-			allBlocks.add(block);
-			block.setRegistryName(BlockArmor.MODID, blockName);
-			registry.register(block);
-		}
-
-	}
-
-	@SuppressWarnings("deprecation")
-	public static void registerRenders() {
-		for (Block block : allBlocks)
-			Minecraft.getInstance().getItemRenderer().getItemModelShaper().register
-			(Item.byBlock(block), new ModelResourceLocation(block.getRegistryName(), "inventory"));
 	}
 
 }

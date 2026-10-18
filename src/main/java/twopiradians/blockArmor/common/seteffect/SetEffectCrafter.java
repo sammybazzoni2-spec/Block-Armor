@@ -4,7 +4,6 @@ package twopiradians.blockArmor.common.seteffect;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -47,12 +46,12 @@ public class SetEffectCrafter extends SetEffect {
 
 		@Override
 		public AbstractContainerMenu createMenu(int id, Inventory playerInventory, Player player) {
-			return new CrafterContainer(id, playerInventory, player.level, player.blockPosition());
+			return new CrafterContainer(id, playerInventory, player.level(), player.blockPosition());
 		}
 
 		@Override
 		public Component getDisplayName() {
-			return new TranslatableComponent("container.crafting");
+			return Component.translatable("container.crafting");
 		}
 	}
 

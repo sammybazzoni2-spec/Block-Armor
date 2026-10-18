@@ -30,7 +30,7 @@ public class SetEffectExplosive extends SetEffect {
 	protected static void tryExplode(SetEffect effect, Level world, Player player) {
 		if (!world.isClientSide && player.mayBuild()) {
 			effect.setCooldown(player, 20);
-			world.explode(player, player.getX(), player.getY()+0.5d, player.getZ(), 6f, false, Explosion.BlockInteraction.BREAK);
+			world.explode(player, player.getX(), player.getY()+0.5d, player.getZ(), 6f, false, Level.ExplosionInteraction.BLOCK);
 			effect.damageArmor(player, 10, true);
 		}
 	}

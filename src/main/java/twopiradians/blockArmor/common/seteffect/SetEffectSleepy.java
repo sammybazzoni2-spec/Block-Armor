@@ -3,7 +3,8 @@ package twopiradians.blockArmor.common.seteffect;
 import java.lang.reflect.Method;
 
 import net.minecraft.ChatFormatting;
-import net.minecraft.network.protocol.game.ClientboundCustomSoundPacket;
+import net.minecraft.core.Holder;
+import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -35,10 +36,10 @@ public class SetEffectSleepy extends SetEffect {
 		if (!world.isClientSide && BlockArmor.key.isKeyDown(player) && ArmorSet.getFirstSetItem(player, this) == stack &&
 				!player.getCooldowns().isOnCooldown(stack.getItem())) {
 			// in nether - use explosive effect
-			if (!player.level.dimensionType().bedWorks())
+			if (!player.level().dimensionType().bedWorks())
 				SetEffectExplosive.tryExplode(this, world, player);
 			// sleep
-			else if (player.level.isNight() && world instanceof ServerLevel) {
+			else if (player.level().isNight() && world instanceof ServerLevel) {
 				// copied from ServerLevel#tick
 				if (world.getGameRules().getBoolean(GameRules.RULE_DAYLIGHT)) {
 					long j = world.getDayTime() + 24000L;
@@ -54,12 +55,12 @@ public class SetEffectSleepy extends SetEffect {
 				}
 
 				if (player instanceof ServerPlayer) 
-					((ServerPlayer)player).connection.send(new ClientboundCustomSoundPacket(SoundEvents.NOTE_BLOCK_CHIME.getRegistryName(), SoundSource.PLAYERS, player.position(), 0.5F, 1.4f));	
+					((ServerPlayer)player).connection.send(new ClientboundSoundPacket(Holder.direct(SoundEvents.NOTE_BLOCK_CHIME), SoundSource.PLAYERS, player.getX(), player.getY(), player.getZ(), 0.5F, 1.4f, player.level().random.nextLong())); 	
 				this.setCooldown(player, 100);
 			}
 			// not night time
 			else if (player instanceof ServerPlayer) {
-				((ServerPlayer)player).connection.send(new ClientboundCustomSoundPacket(SoundEvents.NOTE_BLOCK_BASS.getRegistryName(), SoundSource.PLAYERS, player.position(), 1.0F, world.random.nextFloat() + 0.5F));
+				((ServerPlayer)player).connection.send(new ClientboundSoundPacket(Holder.direct(SoundEvents.NOTE_BLOCK_BASS), SoundSource.PLAYERS, player.getX(), player.getY(), player.getZ(), 1.0F, world.random.nextFloat() + 0.5F, player.level().random.nextLong())); 
 				this.setCooldown(player, 10);
 			}
 		}

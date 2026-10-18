@@ -18,7 +18,6 @@ import twopiradians.blockArmor.client.key.KeyActivateSetEffect;
 @Mod.EventBusSubscriber(bus = Bus.MOD)
 public class BlockArmor {
 	
-	// FIXME forgetting recipes on server reload
 	// FIXME compatibility with configmenusforge - only when removing armor sets and saving?
 			
 	/**Changelog
@@ -34,9 +33,9 @@ public class BlockArmor {
 	public static final Logger LOGGER = LogManager.getLogger(MODID);
 	public static final SimpleChannel NETWORK = NetworkRegistry.ChannelBuilder
 			.named(new ResourceLocation(MODID, "main_channel"))
-			.clientAcceptedVersions(NetworkRegistry.ABSENT::equals)
-			.serverAcceptedVersions(NetworkRegistry.ABSENT::equals)
-			.networkProtocolVersion(() -> NetworkRegistry.ABSENT)
+			.clientAcceptedVersions(NetworkRegistry.ABSENT.version()::equals)
+			.serverAcceptedVersions(NetworkRegistry.ABSENT.version()::equals)
+			.networkProtocolVersion(() -> NetworkRegistry.ABSENT.version())
 			.simpleChannel();
 	public static KeyActivateSetEffect key = new KeyActivateSetEffect();
 

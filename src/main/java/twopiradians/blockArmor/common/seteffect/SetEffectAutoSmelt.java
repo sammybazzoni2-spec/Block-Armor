@@ -1,17 +1,14 @@
 package twopiradians.blockArmor.common.seteffect;
 
+import net.minecraft.network.chat.Component;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 import javax.annotation.Nullable;
 
-import com.google.gson.JsonObject;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.network.chat.TranslatableComponent;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -32,7 +29,12 @@ import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.common.loot.GlobalLootModifierSerializer;
+import java.util.function.Supplier;
+import com.google.common.base.Suppliers;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import net.minecraftforge.common.loot.IGlobalLootModifier;
 import net.minecraftforge.common.loot.LootModifier;
 import net.minecraftforge.event.entity.living.LivingDropsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -58,8 +60,8 @@ public class SetEffectAutoSmelt extends SetEffect {
 				!world.isClientSide && BlockArmor.key.isKeyDown(player) && !player.getCooldowns().isOnCooldown(stack.getItem())) {
 			boolean deactivated = !stack.getTag().getBoolean("deactivated");
 			stack.getTag().putBoolean("deactivated", deactivated);
-			player.sendMessage(new TranslatableComponent(ChatFormatting.GRAY+""+ChatFormatting.ITALIC+"AutoSmelt set effect "
-					+ (deactivated ? ChatFormatting.RED+""+ChatFormatting.ITALIC+"disabled" : ChatFormatting.GREEN+""+ChatFormatting.ITALIC+"enabled")), UUID.randomUUID());
+			player.sendSystemMessage(Component.literal(ChatFormatting.GRAY+""+ChatFormatting.ITALIC+"AutoSmelt set effect "
+					+ (deactivated ? ChatFormatting.RED+""+ChatFormatting.ITALIC+"disabled" : ChatFormatting.GREEN+""+ChatFormatting.ITALIC+"enabled")));
 			this.setCooldown(player, 10);
 		}
 	}
@@ -76,12 +78,12 @@ public class SetEffectAutoSmelt extends SetEffect {
 	/**Smelt mob drops*/
 	@SubscribeEvent
 	public static void smeltMobDrops(LivingDropsEvent event) { 
-		if (event.getSource() != null && event.getEntity() != null && event.getEntity().level instanceof ServerLevel &&
+		if (event.getSource() != null && event.getEntity() != null && event.getEntity().level() instanceof ServerLevel &&
 				event.getSource().getEntity() instanceof LivingEntity &&
 				ArmorSet.hasSetEffect((LivingEntity) event.getSource().getEntity(), SetEffect.AUTOSMELT) &&
 				!(event.getEntity() instanceof Player)) { // don't work on players to prevent abuse
 			// variables
-			ServerLevel world = (ServerLevel) event.getEntity().level;
+			ServerLevel world = (ServerLevel) event.getEntity().level();
 			boolean smelted = false;
 
 			// check if disabled
@@ -115,7 +117,7 @@ public class SetEffectAutoSmelt extends SetEffect {
 	@Nullable
 	private static ItemStack smelt(ItemStack stack, Level world) {
 		return world.getRecipeManager().getRecipeFor(RecipeType.SMELTING, new SimpleContainer(stack), world)
-				.map(SmeltingRecipe::getResultItem)
+				.map(r -> r.getResultItem(world.registryAccess()))
 				.filter(itemStack -> !itemStack.isEmpty())
 				.map(itemStack -> ItemHandlerHelper.copyStackWithSize(itemStack, stack.getCount() * itemStack.getCount()))
 				.orElse(null);
@@ -123,12 +125,20 @@ public class SetEffectAutoSmelt extends SetEffect {
 
 	public static class EnchantmentSmeltingModifier extends LootModifier {
 
+		public static final Supplier<Codec<EnchantmentSmeltingModifier>> CODEC = Suppliers.memoize(() -> RecordCodecBuilder.create(inst -> 
+				codecStart(inst).apply(inst, EnchantmentSmeltingModifier::new)));
+
 		protected EnchantmentSmeltingModifier(LootItemCondition[] conditionsIn) {
 			super(conditionsIn);
 		}
 
 		@Override
-		protected List<ItemStack> doApply(List<ItemStack> generatedLoot, LootContext context) {
+		public Codec<? extends IGlobalLootModifier> codec() {
+			return CODEC.get();
+		}
+
+		@Override
+		protected ObjectArrayList<ItemStack> doApply(ObjectArrayList<ItemStack> generatedLoot, LootContext context) {
 			Entity entityIn = context.getParamOrNull(LootContextParams.THIS_ENTITY);
 			if (entityIn instanceof LivingEntity && ArmorSet.hasSetEffect((LivingEntity) entityIn, SetEffect.AUTOSMELT)) {
 				LivingEntity entity = (LivingEntity) entityIn;
@@ -136,7 +146,7 @@ public class SetEffectAutoSmelt extends SetEffect {
 				BlockState state = context.getParamOrNull(LootContextParams.BLOCK_STATE);
 				ItemStack tool = context.getParamOrNull(LootContextParams.TOOL);
 
-				if (entity.level.isClientSide || 
+				if (entity.level().isClientSide || 
 						(tool != null && EnchantmentHelper.getEnchantments(tool).containsKey(Enchantments.SILK_TOUCH)) || 
 						!stack.hasTag() || stack.getTag().getBoolean("deactivated"))
 					return generatedLoot;
@@ -144,7 +154,7 @@ public class SetEffectAutoSmelt extends SetEffect {
 				boolean smelted = false;
 
 				// smelt drops
-				ArrayList<ItemStack> newLoot = new ArrayList<ItemStack>();
+				ObjectArrayList<ItemStack> newLoot = new ObjectArrayList<ItemStack>();
 				for (ItemStack oldStack : generatedLoot) {
 					ItemStack newStack = smelt(oldStack, context.getLevel());
 					if (newStack != null) {
@@ -156,9 +166,10 @@ public class SetEffectAutoSmelt extends SetEffect {
 				// smelt block
 				if (!smelted && state != null) {
 					ItemStack newStack = smelt(new ItemStack(state.getBlock()), context.getLevel());
-					if (newStack != null)
+					if (newStack != null) {
 						smelted = true;
-					newLoot.add(newStack);
+						newLoot.add(newStack);
+					}
 				}
 
 				// effects if smelted
@@ -174,20 +185,6 @@ public class SetEffectAutoSmelt extends SetEffect {
 				}
 			}
 			return generatedLoot;
-		}
-
-		public static class Serializer extends GlobalLootModifierSerializer<EnchantmentSmeltingModifier> {
-
-			@Override
-			public EnchantmentSmeltingModifier read(ResourceLocation location, JsonObject object, LootItemCondition[] conditions) {
-				return new EnchantmentSmeltingModifier(conditions);
-			}
-
-			@Override
-			public JsonObject write(EnchantmentSmeltingModifier instance) {
-				return this.makeConditions(instance.conditions);
-			}
-
 		}
 
 	}

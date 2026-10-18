@@ -25,9 +25,9 @@ public class SetEffectUndying extends SetEffect {
 	@SubscribeEvent
 	public static void onEvent(LivingDeathEvent event) {
 		try {
-			if (event.getEntityLiving() instanceof ServerPlayer) {
-				ServerPlayer player = (ServerPlayer) event.getEntityLiving();
-				if (!player.level.isClientSide && 
+			if (event.getEntity() instanceof ServerPlayer) {
+				ServerPlayer player = (ServerPlayer) event.getEntity();
+				if (!player.level().isClientSide && 
 						ArmorSet.hasSetEffect(player, SetEffect.UNDYING) && 
 						!player.getCooldowns().isOnCooldown(ArmorSet.getFirstSetItem(player, SetEffect.UNDYING).getItem())) {
 					// set health to 1 and clear effects
@@ -36,7 +36,7 @@ public class SetEffectUndying extends SetEffect {
 					player.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 900, 1));
 					player.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, 100, 1));
 					player.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, 800, 0));
-					player.level.broadcastEntityEvent(player, (byte)35);
+					player.level().broadcastEntityEvent(player, (byte)35);
 					// cooldown, damage, sound
 					SetEffect.UNDYING.setCooldown(player, 6000);
 					SetEffect.UNDYING.damageArmor(player, 100, true);

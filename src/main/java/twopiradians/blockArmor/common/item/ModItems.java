@@ -3,12 +3,9 @@ package twopiradians.blockArmor.common.item;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.resources.model.ModelResourceLocation;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraft.world.entity.npc.VillagerProfession;
 import net.minecraft.world.item.Item;
-import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModLoadingContext;
@@ -17,7 +14,7 @@ import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.ForgeRegistry;
-import net.minecraftforge.registries.IForgeRegistry;
+import net.minecraftforge.registries.RegisterEvent;
 import twopiradians.blockArmor.common.BlockArmor;
 import twopiradians.blockArmor.common.config.Config;
 import twopiradians.blockArmor.common.seteffect.SetEffect;
@@ -30,10 +27,14 @@ public class ModItems {
 	public static class RegistrationHandler {
 
 		@SubscribeEvent(priority=EventPriority.LOWEST)
-		public static void registerItems(final RegistryEvent.Register<VillagerProfession> event) {	
+		public static void registerItems(final RegisterEvent event) {	
 			// hacky way to make sure our items are registered last
-			// by registering during a later registry event and unfreezing / refreezing registry
-			ForgeRegistry registry = (ForgeRegistry) ForgeRegistries.ITEMS;
+			// by registering during a later registry event (villager professions come after items) 
+			// and unfreezing / refreezing the item registry
+			if (!event.getRegistryKey().equals(ForgeRegistries.Keys.VILLAGER_PROFESSIONS))
+				return;
+
+			ForgeRegistry<Item> registry = (ForgeRegistry<Item>) ForgeRegistries.ITEMS;
 			registry.unfreeze();
 			
 			ArmorSet.setup(registry.getValues()); 
@@ -69,17 +70,10 @@ public class ModItems {
 
 	}
 
-	private static BlockArmorItem register(IForgeRegistry<Item> registry, BlockArmorItem armor, String itemName) {
+	private static BlockArmorItem register(ForgeRegistry<Item> registry, BlockArmorItem armor, String itemName) {
 		allArmors.add(armor);
-		armor.setRegistryName(BlockArmor.MODID, itemName);
-		registry.register(armor);
+		registry.register(new ResourceLocation(BlockArmor.MODID, itemName), armor);
 		return armor;
-	}
-
-	public static void registerRenders() {
-		for (BlockArmorItem item : allArmors) 
-			Minecraft.getInstance().getItemRenderer().getItemModelShaper().register
-			(item, new ModelResourceLocation(item.getRegistryName(), "inventory"));
 	}
 
 }

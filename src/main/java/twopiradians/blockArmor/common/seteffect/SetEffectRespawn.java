@@ -2,6 +2,8 @@ package twopiradians.blockArmor.common.seteffect;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.protocol.game.ClientboundRespawnPacket;
 import net.minecraft.network.protocol.game.ClientboundSetDefaultSpawnPositionPacket;
 import net.minecraft.network.protocol.game.ClientboundSetExperiencePacket;
@@ -29,15 +31,15 @@ public class SetEffectRespawn extends SetEffect {
 	@SubscribeEvent
 	public static void onEvent(LivingDeathEvent event) {
 		try {
-			if (event.getEntityLiving() instanceof ServerPlayer) {
-				ServerPlayer player = (ServerPlayer) event.getEntityLiving();
-				if (!player.level.isClientSide && 
+			if (event.getEntity() instanceof ServerPlayer) {
+				ServerPlayer player = (ServerPlayer) event.getEntity();
+				if (!player.level().isClientSide && 
 						ArmorSet.hasSetEffect(player, SetEffect.RESPAWN) && 
 						!player.getCooldowns().isOnCooldown(ArmorSet.getFirstSetItem(player, SetEffect.RESPAWN).getItem())) {
 					// set health to 1 and clear effects
 					player.setHealth(1);
 					player.removeAllEffects();
-					player.level.broadcastEntityEvent(player, (byte)3);
+					player.level().broadcastEntityEvent(player, (byte)3);
 					player.clearFire();
 					player.getCombatTracker().recheckStatus();
 					// set player's position and dimension to spawn point
@@ -47,13 +49,13 @@ public class SetEffectRespawn extends SetEffect {
 					BlockPos respawnPos = player.getRespawnPosition();
 					if (respawnPos == null)
 						respawnPos = respawnWorld.getSharedSpawnPos();
-					if (respawnWorld != player.level) {
+					if (respawnWorld != player.level()) {
 						player.handleInsidePortal(player.blockPosition());
 						player.changeDimension(respawnWorld);
 					}
 					player.moveTo(respawnPos.getX(), respawnPos.getY(), respawnPos.getZ(), 0, 0);
 					player.setRespawnPosition(respawnWorld.dimension(), respawnPos, player.getRespawnAngle(), player.isRespawnForced(), false);
-					player.connection.send(new ClientboundRespawnPacket(player.level.dimensionType(), player.level.dimension(), BiomeManager.obfuscateSeed(player.getLevel().getSeed()), player.gameMode.getGameModeForPlayer(), player.gameMode.getPreviousGameModeForPlayer(), player.getLevel().isDebug(), player.getLevel().isFlat(), true));
+					player.connection.send(new ClientboundRespawnPacket(player.serverLevel().dimensionTypeId(), player.serverLevel().dimension(), BiomeManager.obfuscateSeed(player.serverLevel().getSeed()), player.gameMode.getGameModeForPlayer(), player.gameMode.getPreviousGameModeForPlayer(), player.serverLevel().isDebug(), player.serverLevel().isFlat(), (byte)3, player.getLastDeathLocation()));
 					player.connection.teleport(player.getX(), player.getY(), player.getZ(), player.getYRot(), player.getXRot());
 					player.connection.send(new ClientboundSetDefaultSpawnPositionPacket(respawnWorld.getSharedSpawnPos(), respawnWorld.getSharedSpawnAngle()));
 					player.connection.send(new ClientboundSetExperiencePacket(player.experienceProgress, player.totalExperience, player.experienceLevel));
@@ -61,7 +63,7 @@ public class SetEffectRespawn extends SetEffect {
 					// cooldown, damage, sound
 					SetEffect.RESPAWN.setCooldown(player, 6000);
 					SetEffect.RESPAWN.damageArmor(player, 100, true);
-					player.connection.send(new ClientboundSoundPacket(SoundEvents.RESPAWN_ANCHOR_DEPLETE, SoundSource.BLOCKS, (double)player.getX(), (double)player.getY(), (double)player.getZ(), 1.0F, 1.0F));
+					player.connection.send(new ClientboundSoundPacket(BuiltInRegistries.SOUND_EVENT.getHolder(new ResourceLocation("block.respawn_anchor.deplete")).get(), SoundSource.BLOCKS, player.getX(), player.getY(), player.getZ(), 1.0F, 1.0F, player.serverLevel().random.nextLong()));
 					// cancel event so player doesn't die
 					event.setCanceled(true);
 				}

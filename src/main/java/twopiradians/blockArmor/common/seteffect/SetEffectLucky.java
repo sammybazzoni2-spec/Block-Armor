@@ -2,12 +2,10 @@ package twopiradians.blockArmor.common.seteffect;
 
 import java.util.List;
 
-import com.google.gson.JsonObject;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -22,13 +20,18 @@ import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.OreBlock;
+import net.minecraft.world.level.block.DropExperienceBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.common.loot.GlobalLootModifierSerializer;
+import java.util.function.Supplier;
+import com.google.common.base.Suppliers;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import net.minecraftforge.common.loot.IGlobalLootModifier;
 import net.minecraftforge.common.loot.LootModifier;
 import net.minecraftforge.event.entity.living.LootingLevelEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -50,10 +53,10 @@ public class SetEffectLucky extends SetEffect {
 	public static void addLooting(LootingLevelEvent event) { 
 		if (event.getDamageSource() != null &&
 				event.getDamageSource().getEntity() instanceof Player && 
-				event.getEntity().level instanceof ServerLevel &&
+				event.getEntity().level() instanceof ServerLevel &&
 				ArmorSet.getWornSetEffects((LivingEntity) event.getDamageSource().getEntity()).contains(SetEffect.LUCKY)) {
 			event.setLootingLevel(event.getLootingLevel()+4);
-			SetEffect.LUCKY.doParticlesAndSound((ServerLevel) event.getEntity().level, event.getEntity().blockPosition(), 
+			SetEffect.LUCKY.doParticlesAndSound((ServerLevel) event.getEntity().level(), event.getEntity().blockPosition(), 
 					(Player) event.getDamageSource().getEntity(), 4);
 		}
 	}
@@ -79,13 +82,21 @@ public class SetEffectLucky extends SetEffect {
 
 	public static class SetEffectLuckyModifier extends LootModifier {
 
+		public static final Supplier<Codec<SetEffectLuckyModifier>> CODEC = Suppliers.memoize(() -> RecordCodecBuilder.create(inst -> 
+				codecStart(inst).apply(inst, SetEffectLuckyModifier::new)));
+
 		protected SetEffectLuckyModifier(LootItemCondition[] conditionsIn) {
 			super(conditionsIn);
 		}
 
+		@Override
+		public Codec<? extends IGlobalLootModifier> codec() {
+			return CODEC.get();
+		}
+
 		/**Increase fortune*/
 		@Override
-		protected List<ItemStack> doApply(List<ItemStack> generatedLoot, LootContext context) {
+		protected ObjectArrayList<ItemStack> doApply(ObjectArrayList<ItemStack> generatedLoot, LootContext context) {
 			Entity entityIn = context.getParamOrNull(LootContextParams.THIS_ENTITY);
 			if (entityIn instanceof LivingEntity && 
 					ArmorSet.getWornSetEffects((LivingEntity) entityIn).contains(SetEffect.LUCKY)) {
@@ -99,7 +110,7 @@ public class SetEffectLucky extends SetEffect {
 					for (ItemStack stack : generatedLoot)
 						if (stack != null && stack.getItem() == item)
 							return generatedLoot;
-				if (pos != null && state != null && state.getBlock() instanceof OreBlock &&
+				if (pos != null && state != null && state.getBlock() instanceof DropExperienceBlock &&
 						(tool == null || EnchantmentHelper.getItemEnchantmentLevel(Enchantments.SILK_TOUCH, tool) <= 0)) {
 					int beforeCount = 0;
 					int afterCount = 0;
@@ -109,26 +120,12 @@ public class SetEffectLucky extends SetEffect {
 						afterCount += stack.getCount();
 					}
 					if (afterCount > beforeCount) {
-						SetEffect.LUCKY.doParticlesAndSound(entity.level, new BlockPos(pos), entity, afterCount-beforeCount);
+						SetEffect.LUCKY.doParticlesAndSound(entity.level(), BlockPos.containing(pos), entity, afterCount-beforeCount);
 						SetEffect.LUCKY.damageArmor(entity, afterCount-beforeCount, false);
 					}
 				}
 			}
 			return generatedLoot;
-		}
-
-		public static class Serializer extends GlobalLootModifierSerializer<SetEffectLuckyModifier> {
-
-			@Override
-			public SetEffectLuckyModifier read(ResourceLocation location, JsonObject object, LootItemCondition[] conditions) {
-				return new SetEffectLuckyModifier(conditions);
-			}
-
-			@Override
-			public JsonObject write(SetEffectLuckyModifier instance) {
-				return this.makeConditions(instance.conditions);
-			}
-
 		}
 
 	}

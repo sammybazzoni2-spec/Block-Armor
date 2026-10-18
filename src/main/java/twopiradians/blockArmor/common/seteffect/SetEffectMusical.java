@@ -8,7 +8,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.state.properties.NoteBlockInstrument;
 import twopiradians.blockArmor.common.item.ArmorSet;
 
 public class SetEffectMusical extends SetEffect {
@@ -34,7 +33,7 @@ public class SetEffectMusical extends SetEffect {
 				((ServerLevel)world).sendParticles(ParticleTypes.NOTE, 
 						player.getX(), player.getY()+1f, player.getZ(),1, 0.8f, 0.4f, 0.8f, world.random.nextDouble());
 				world.playSound((Player)null, player.blockPosition(), 
-						NoteBlockInstrument.byState(world.getBlockState(player.blockPosition().below())).getSoundEvent(), 
+						world.getBlockState(player.blockPosition().below()).instrument().getSoundEvent().value(), 
 						SoundSource.RECORDS, 3.0F, world.random.nextFloat()*2);
 			}
 		}

@@ -1,8 +1,12 @@
 package twopiradians.blockArmor.client.model;
 
 import java.awt.Color;
+import java.lang.reflect.Array;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -14,8 +18,11 @@ import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.geom.ModelPart.Cube;
+import net.minecraft.client.model.geom.builders.CubeDefinition;
+import net.minecraft.client.model.geom.builders.CubeListBuilder;
+import net.minecraft.core.Direction;
+import org.joml.Vector3f;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -23,7 +30,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.fml.util.ObfuscationReflectionHelper;
 import twopiradians.blockArmor.common.BlockArmor;
 import twopiradians.blockArmor.common.command.CommandDev;
 import twopiradians.blockArmor.common.item.BlockArmorItem;
@@ -31,7 +37,39 @@ import twopiradians.blockArmor.common.item.BlockArmorItem;
 @OnlyIn(Dist.CLIENT)
 public class ModelBAArmor<T extends LivingEntity> extends HumanoidModel<T> {
 
-	private static final Field MODEL_BOX_QUADS = ObfuscationReflectionHelper.findField(ModelPart.Cube.class, "f_104341_");
+	/**Cube#polygons - found by type so no mapping names are needed*/
+	private static final Field CUBE_POLYGONS_FIELD = findField(ModelPart.Cube.class, f -> f.getType().isArray());
+	/**ModelPart#cubes - the only List field of ModelPart*/
+	private static final Field PART_CUBES_FIELD = findField(ModelPart.class, f -> List.class.isAssignableFrom(f.getType()));
+
+	private static Field findField(Class<?> clazz, java.util.function.Predicate<Field> filter) {
+		for (Field f : clazz.getDeclaredFields())
+			if (!Modifier.isStatic(f.getModifiers()) && filter.test(f)) {
+				f.setAccessible(true);
+				return f;
+			}
+		throw new IllegalStateException("Could not find field in "+clazz);
+	}
+
+	/**Replace a part's cubes with a new (mutable) list and return it*/
+	private static List<Cube> resetCubes(ModelPart part) {
+		try {
+			ArrayList<Cube> cubes = new ArrayList<Cube>();
+			PART_CUBES_FIELD.set(part, cubes);
+			return cubes;
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private static List<Cube> getCubes(ModelPart part) {
+		try {
+			return (List<Cube>) PART_CUBES_FIELD.get(part);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
 	/**Cached resource locations for armor textures*/
 	private static final HashMap<String, ResourceLocation> TEXTURES = Maps.newHashMap();
 
@@ -66,15 +104,15 @@ public class ModelBAArmor<T extends LivingEntity> extends HumanoidModel<T> {
 	public int remodelOffset; 
 
 	public ModelBAArmor(int textureHeight, int textureWidth, int currentFrame, int nextFrame, EquipmentSlot slot) { 
-		super(new EntityRendererProvider.Context(Minecraft.getInstance().getEntityRenderDispatcher(), Minecraft.getInstance().getItemRenderer(), Minecraft.getInstance().getResourceManager(), Minecraft.getInstance().getEntityModels(), Minecraft.getInstance().font).bakeLayer(ModelLayers.PLAYER_INNER_ARMOR));
+		super(Minecraft.getInstance().getEntityModels().bakeLayer(ModelLayers.PLAYER_INNER_ARMOR));
 		int size = Math.max(1, textureWidth / 16);
 		this.textureHeight = textureHeight / size;
 		this.textureWidth = textureWidth / size;
 		this.slot = slot;
 
-		this.waist = new ModelPart(Lists.newArrayList(new ModelPart.Cube(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, false, 0, 0)), Maps.newHashMap());
-		this.rightFoot = new ModelPart(Lists.newArrayList(new ModelPart.Cube(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, false, 0, 0)), Maps.newHashMap());
-		this.leftFoot = new ModelPart(Lists.newArrayList(new ModelPart.Cube(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, true, 0, 0)), Maps.newHashMap());
+		this.waist = new ModelPart(Lists.newArrayList(), Maps.newHashMap());
+		this.rightFoot = new ModelPart(Lists.newArrayList(), Maps.newHashMap());
+		this.leftFoot = new ModelPart(Lists.newArrayList(), Maps.newHashMap());
 
 		if (currentFrame != nextFrame) { // if animated, create models with offset textures for overlay
 			offsetHead = new ModelPart(Lists.newArrayList(), Maps.newHashMap());
@@ -103,20 +141,23 @@ public class ModelBAArmor<T extends LivingEntity> extends HumanoidModel<T> {
 			ModelPart waist, ModelPart rightFoot, ModelPart leftFoot) {	
 
 		// Initialization and rotation points
-		head.cubes = Lists.newArrayList();
+		resetCubes(head);
 		head.setPos(0.0F, 0.0F, 0.0F);
-		body.cubes = Lists.newArrayList();
+		resetCubes(body);
 		body.setPos(0.0F, 0.0F, 0.0F);
-		rightArm.cubes = Lists.newArrayList();
+		resetCubes(rightArm);
 		rightArm.setPos(-5.0F, 2.0F, 0.0F);
-		leftArm.cubes = Lists.newArrayList();
+		resetCubes(leftArm);
 		leftArm.setPos(5.0F, 2.0F, 0.0F);
+		resetCubes(waist);
 		waist.setPos(0.0F, 0.0F, 0.0F);
-		rightLeg.cubes = Lists.newArrayList();
+		resetCubes(rightLeg);
 		rightLeg.setPos(-1.9F, 12.0F, 0.0F);
-		leftLeg.cubes = Lists.newArrayList();
+		resetCubes(leftLeg);
 		leftLeg.setPos(1.9F, 12.0F, 0.0F);
+		resetCubes(rightFoot);
 		rightFoot.setPos(-1.9F, 12.0F, 0.0F);
+		resetCubes(leftFoot);
 		leftFoot.setPos(1.9F, 12.0F, 0.0F);
 
 		// Add planes for specified slot
@@ -214,22 +255,48 @@ public class ModelBAArmor<T extends LivingEntity> extends HumanoidModel<T> {
 	/** Add a plane (model box with just one quad) to this model */
 	private void addPlane(ModelPart model, int textureOffsetX, int textureOffsetY, float x, float y, float z,
 			float width, float height, float depth, boolean flip) {
-		try {			
-			Cube cube = new Cube(textureOffsetX, textureOffsetY, x, y, z, width, height, depth, 0, 0, 0, flip, this.textureWidth, this.textureHeight);
-			ModelPart.Polygon[] quads = (ModelPart.Polygon[]) MODEL_BOX_QUADS.get(cube);
-			ModelPart.Polygon[] newQuads = new ModelPart.Polygon[1];
+		try {
+			CubeListBuilder builder = CubeListBuilder.create().texOffs(textureOffsetX, textureOffsetY).mirror(flip).addBox(x, y, z, width, height, depth);
+			CubeDefinition definition = builder.getCubes().get(0);
+			Cube cube = definition.bake(this.textureWidth, this.textureHeight);
 
+			// which face of the box do we want to keep
+			Direction face;
 			if (width == 0) // y-z plane
-				newQuads[0] = quads[flip ? 1 : 0];
-			else if (height == 0)
-				newQuads[0] = quads[flip ? 3 : 2];
-			else if (depth == 0) // x-z plane
-				newQuads[0] = quads[flip ? 5 : 4];
-			MODEL_BOX_QUADS.set(cube, newQuads);
-			model.cubes.add(cube);
+				face = flip ? Direction.WEST : Direction.EAST;
+			else if (height == 0) // x-z plane
+				face = flip ? Direction.UP : Direction.DOWN;
+			else // depth == 0 - x-y plane
+				face = flip ? Direction.SOUTH : Direction.NORTH;
+			// mirrored cubes flip the x of their polygons' normals
+			float normalX = face.getStepX() * (flip ? -1 : 1);
+
+			Object[] polygons = (Object[]) CUBE_POLYGONS_FIELD.get(cube);
+			Object chosen = null;
+			for (Object polygon : polygons) {
+				Vector3f normal = getNormal(polygon);
+				if (Math.abs(normal.x() - normalX) < 0.01f && Math.abs(normal.y() - face.getStepY()) < 0.01f && Math.abs(normal.z() - face.getStepZ()) < 0.01f) {
+					chosen = polygon;
+					break;
+				}
+			}
+			if (chosen == null)
+				return;
+			Object[] newQuads = (Object[]) Array.newInstance(polygons.getClass().getComponentType(), 1);
+			newQuads[0] = chosen;
+			CUBE_POLYGONS_FIELD.set(cube, newQuads);
+			getCubes(model).add(cube);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+
+	private static Field polygonNormalField;
+
+	private static Vector3f getNormal(Object polygon) throws Exception {
+		if (polygonNormalField == null)
+			polygonNormalField = findField(polygon.getClass(), f -> f.getType() == Vector3f.class);
+		return (Vector3f) polygonNormalField.get(polygon);
 	}
 
 	/**

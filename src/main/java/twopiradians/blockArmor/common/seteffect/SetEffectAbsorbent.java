@@ -25,7 +25,7 @@ import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FluidState;
-import net.minecraft.world.level.material.Material;
+import net.minecraftforge.registries.ForgeRegistries;
 import twopiradians.blockArmor.common.BlockArmor;
 import twopiradians.blockArmor.common.item.ArmorSet;
 import twopiradians.blockArmor.common.item.BlockArmorItem;
@@ -61,7 +61,7 @@ public class SetEffectAbsorbent extends SetEffect {
 								((BlockArmorItem)oldStack.getItem()).set == wornSet) { //only change if wet sponge 
 							CompoundTag nbt = new CompoundTag();
 							oldStack.save(nbt);
-							nbt.putString("id", drySet.getArmorForSlot(slot).getRegistryName().toString());
+							nbt.putString("id", ForgeRegistries.ITEMS.getKey(drySet.getArmorForSlot(slot)).toString());
 							player.setItemSlot(slot, ItemStack.of(nbt));
 						}
 					}
@@ -79,7 +79,7 @@ public class SetEffectAbsorbent extends SetEffect {
 								((BlockArmorItem)oldStack.getItem()).set == wornSet) { //only change if dry sponge 
 							CompoundTag nbt = new CompoundTag();
 							oldStack.save(nbt);
-							nbt.putString("id", wetSet.getArmorForSlot(slot).getRegistryName().toString());
+							nbt.putString("id", ForgeRegistries.ITEMS.getKey(wetSet.getArmorForSlot(slot)).toString());
 							player.setItemSlot(slot, ItemStack.of(nbt));
 						}
 					}
@@ -108,7 +108,6 @@ public class SetEffectAbsorbent extends SetEffect {
 	            BlockPos blockpos1 = blockpos.relative(direction);
 	            BlockState blockstate = worldIn.getBlockState(blockpos1);
 	            FluidState fluidstate = worldIn.getFluidState(blockpos1);
-	            Material material = blockstate.getMaterial();
 	            if (fluidstate.is(FluidTags.WATER) && player.mayUseItemAt(blockpos1, Direction.UP, stack)) {
 	               if (blockstate.getBlock() instanceof BucketPickup && !((BucketPickup)blockstate.getBlock()).pickupBlock(worldIn, blockpos1, blockstate).isEmpty()) {
 	                  ++i;
@@ -121,7 +120,7 @@ public class SetEffectAbsorbent extends SetEffect {
 	                  if (j < 6) {
 	                     queue.add(new Tuple<>(blockpos1, j + 1));
 	                  }
-	               } else if (material == Material.WATER_PLANT || material == Material.REPLACEABLE_WATER_PLANT) {
+	               } else if (blockstate.is(Blocks.KELP) || blockstate.is(Blocks.KELP_PLANT) || blockstate.is(Blocks.SEAGRASS) || blockstate.is(Blocks.TALL_SEAGRASS)) {
 	                  BlockEntity tileentity = blockstate.hasBlockEntity() ? worldIn.getBlockEntity(blockpos1) : null;
 	                  Block.dropResources(blockstate, worldIn, blockpos1, tileentity);
 	                  worldIn.setBlock(blockpos1, Blocks.AIR.defaultBlockState(), 3);

@@ -1,17 +1,21 @@
 package twopiradians.blockArmor.common.seteffect;
 
-import com.google.common.collect.Lists;
-
 import net.minecraft.ChatFormatting;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.world.level.block.BambooStalkBlock;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.BushBlock;
+import net.minecraft.world.level.block.CactusBlock;
+import net.minecraft.world.level.block.GrowingPlantBlock;
+import net.minecraft.world.level.block.LeavesBlock;
+import net.minecraft.world.level.block.VineBlock;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.BonemealableBlock;
 import net.minecraft.world.level.block.NetherrackBlock;
-import net.minecraft.world.level.material.Material;
 import net.minecraftforge.common.IPlantable;
-import twopiradians.blockArmor.utils.BlockUtils;
 
 public class SetEffectRegrowth extends SetEffect {
 
@@ -40,13 +44,14 @@ public class SetEffectRegrowth extends SetEffect {
 						"log", "wood", "stem", "plank", "grass", "nether_wart"}))
 			return true;	
 		
-		Material material = BlockUtils.getMaterial(block);
-		if (Lists.newArrayList(Material.BAMBOO, Material.BAMBOO_SAPLING, Material.CACTUS, 
-				Material.VEGETABLE, Material.LEAVES, Material.PLANT, Material.WATER_PLANT, Material.REPLACEABLE_FIREPROOF_PLANT,
-				Material.WATER_PLANT, Material.REPLACEABLE_WATER_PLANT, Material.REPLACEABLE_PLANT, Material.NETHER_WOOD)
-				.contains(material))
+		// replacement for the removed Material checks (bamboo, cactus, crops, leaves, plants, nether wood)
+		BlockState state = block.defaultBlockState();
+		if (block instanceof BushBlock || block instanceof BambooStalkBlock || block instanceof CactusBlock || 
+				block instanceof VineBlock || block instanceof GrowingPlantBlock || block instanceof LeavesBlock || 
+				state.is(BlockTags.LEAVES) || state.is(BlockTags.CROPS) || state.is(BlockTags.SAPLINGS) || 
+				state.is(BlockTags.FLOWERS) || state.is(BlockTags.LOGS) || state.is(BlockTags.WART_BLOCKS))
 			return true;
-		
+
 		return false;
 	}
 }

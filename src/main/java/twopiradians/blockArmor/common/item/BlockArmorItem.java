@@ -14,11 +14,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
@@ -26,10 +23,10 @@ import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.ArmorMaterial;
-import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Rarity;
@@ -37,7 +34,7 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.client.IItemRenderProperties;
+import net.minecraftforge.client.extensions.common.IClientItemExtensions;
 import twopiradians.blockArmor.client.ClientProxy;
 import twopiradians.blockArmor.client.model.ModelBAArmor;
 import twopiradians.blockArmor.common.command.CommandDev;
@@ -52,17 +49,36 @@ public class BlockArmorItem extends ArmorItem {
 			UUID.fromString("2AD3F246-FEE1-4E67-B886-69FD380BB150") };
 	/** The ArmorSet that this item belongs to */
 	public ArmorSet set;
-	/** Creative tab/group for this item (bc Item.group is final) */
-	@Nullable
-	public CreativeModeTab group;
+	/** Equipment slot of this item (ArmorItem only stores a Type now) */
+	private final EquipmentSlot slot;
+	/** Max damage (bc Item.maxDamage is final) */
+	private int customMaxDamage;
 	/** Armor material (bc ArmorItem.material is final) */
 	private ArmorMaterial material;
 	private HashMultimap<Attribute, AttributeModifier> attributes;
 
 	public BlockArmorItem(BlockArmorMaterial material, EquipmentSlot slot, ArmorSet set) {
-		super(material, slot, new Item.Properties().tab(CreativeModeTab.TAB_COMBAT)); // combat group for recipe book
+		super(material, typeForSlot(slot), new Item.Properties());
+		this.slot = slot;
 		this.set = set;
 		this.setMaterial(material);
+	}
+
+	private static ArmorItem.Type typeForSlot(EquipmentSlot slot) {
+		switch (slot) {
+		case HEAD:
+			return ArmorItem.Type.HELMET;
+		case CHEST:
+			return ArmorItem.Type.CHESTPLATE;
+		case LEGS:
+			return ArmorItem.Type.LEGGINGS;
+		default:
+			return ArmorItem.Type.BOOTS;
+		}
+	}
+
+	public EquipmentSlot getSlot() {
+		return this.slot;
 	}
 
 	/** Change armor texture based on block */
@@ -70,7 +86,7 @@ public class BlockArmorItem extends ArmorItem {
 	@OnlyIn(Dist.CLIENT)
 	public String getArmorTexture(ItemStack stack, Entity entity, EquipmentSlot slot, String type) {
 		TextureAtlasSprite sprite = this.set.getTextureInfo(slot).sprite;
-		String texture = sprite.getName() + ".png";
+		String texture = sprite.contents().name() + ".png";
 		int index = texture.indexOf(":");
 		texture = texture.substring(0, index + 1) + "textures/" + texture.substring(index + 1);
 		return texture;
@@ -78,42 +94,24 @@ public class BlockArmorItem extends ArmorItem {
 
 	@Override 
 	@OnlyIn(Dist.CLIENT)
-	public void initializeClient(Consumer<IItemRenderProperties> consumer) {
-		consumer.accept(new IItemRenderProperties() {
+	public void initializeClient(Consumer<IClientItemExtensions> consumer) {
+		consumer.accept(new IClientItemExtensions() {
 			@Override
 			@OnlyIn(Dist.CLIENT)
-			public <A extends HumanoidModel<?>> A getArmorModel(LivingEntity entity, ItemStack stack, EquipmentSlot armorSlot, A _default) {
+			public HumanoidModel<?> getHumanoidArmorModel(LivingEntity entity, ItemStack stack, EquipmentSlot armorSlot, HumanoidModel<?> _default) {
 				BlockArmorItem item = (BlockArmorItem) stack.getItem();
 				TextureInfo info = item.set.getTextureInfo(item.slot);
 				TextureAtlasSprite sprite = info.sprite;
-				int width = sprite.getWidth();
+				int width = sprite.contents().width();
 				int height = info.originalHeight;
 				int currentFrame = info.getCurrentAnimationFrame();
 				int nextFrame = info.getNextAnimationFrame();
-				ModelBAArmor model = (ModelBAArmor) ClientProxy.getBlockArmorModel(entity, height, width, currentFrame, nextFrame, slot);
+				ModelBAArmor model = (ModelBAArmor) ClientProxy.getBlockArmorModel(entity, height, width, currentFrame, nextFrame, armorSlot);
 				model.color = info.color;
 				model.alpha = info.getAlpha();
-				return (A) model;
+				return model;
 			}
 		});
-	}
-
-	/** Don't display item in creative tab/JEI if disabled */
-	@Override
-	public void fillItemCategory(CreativeModeTab group, NonNullList<ItemStack> items) {
-		if (!set.isEnabled())
-			return;
-		else
-			super.fillItemCategory(group, items);
-	}
-
-	@Override
-	protected boolean allowdedIn(CreativeModeTab group) {
-		return set.isEnabled() && group != null && (group == CreativeModeTab.TAB_SEARCH || group == this.group);
-	}
-
-	public void setGroup(CreativeModeTab group) {
-		this.group = group;
 	}
 
 	@Override
@@ -129,7 +127,7 @@ public class BlockArmorItem extends ArmorItem {
 	/** Change display name based on the block */
 	@Override
 	public Component getName(ItemStack stack) {
-		return ArmorSet.getItemStackDisplayName(stack.getItem(), this.getSlot());
+		return ArmorSet.getItemStackDisplayName(stack.getItem(), this.slot);
 	}
 
 	/** Handles the attributes when wearing an armor set */
@@ -162,13 +160,13 @@ public class BlockArmorItem extends ArmorItem {
 	public void appendHoverText(ItemStack stack, @Nullable Level worldIn, List<Component> tooltip,
 			TooltipFlag flagIn) {
 		if (stack.hasTag() && stack.getTag().contains("devSpawned"))
-			tooltip.add(new TextComponent(ChatFormatting.DARK_PURPLE + "" + ChatFormatting.BOLD + "Dev Spawned"));
+			tooltip.add(Component.literal(ChatFormatting.DARK_PURPLE + "" + ChatFormatting.BOLD + "Dev Spawned"));
 
 		if (!set.setEffects.isEmpty() && set.setEffects.get(0).isEnabled()) {
 			// add header if shifting
 			if (Screen.hasShiftDown())
-				tooltip.add(new TranslatableComponent("item.blockarmor.tooltip.setEffects", 
-						new TranslatableComponent("item.blockarmor.tooltip.setEffectsRequire"+(Config.piecesForSet == 4 ? "" : "+"), Config.piecesForSet)
+				tooltip.add(Component.translatable("item.blockarmor.tooltip.setEffects", 
+						Component.translatable("item.blockarmor.tooltip.setEffectsRequire"+(Config.piecesForSet == 4 ? "" : "+"), Config.piecesForSet)
 						.withStyle(ChatFormatting.ITALIC), Config.piecesForSet)
 						.withStyle(ChatFormatting.GOLD));
 
@@ -205,8 +203,8 @@ public class BlockArmorItem extends ArmorItem {
 	public boolean onEntityItemUpdate(ItemStack stack, ItemEntity entityItem) {
 		// delete dev spawned items if not worn by dev and delete disabled items (except
 		// missingTexture items in SMP)
-		if ((!set.isEnabled() && !entityItem.level.isClientSide)
-				|| (!entityItem.level.isClientSide && entityItem != null && entityItem.getItem() != null
+		if ((!set.isEnabled() && !entityItem.level().isClientSide)
+				|| (!entityItem.level().isClientSide && entityItem != null && entityItem.getItem() != null
 				&& entityItem.getItem().hasTag() && entityItem.getItem().getTag().contains("devSpawned"))) {
 			entityItem.discard();
 			return true;
@@ -252,7 +250,13 @@ public class BlockArmorItem extends ArmorItem {
 							(this.material.getKnockbackResistance()) / 10d * Config.globalKnockbackResistanceModifier,
 							AttributeModifier.Operation.ADDITION));
 		// change max damage (bc method is final)
-		this.maxDamage = (int) (material.getDurabilityForSlot(slot) * Config.globalDurabilityModifier);
+		this.customMaxDamage = (int) (material.getDurabilityForType(this.getType()) * Config.globalDurabilityModifier);
+	}
+
+	/** Max damage is calculated from the (changeable) material instead of Item#maxDamage */
+	@Override
+	public int getMaxDamage(ItemStack stack) {
+		return this.customMaxDamage;
 	}
 
 	@Override
@@ -262,7 +266,7 @@ public class BlockArmorItem extends ArmorItem {
 
 	@Override
 	public int getDefense() {
-		return (int) (this.material.getDefenseForSlot(slot) * Config.globalDamageReductionModifier);
+		return (int) (this.material.getDefenseForType(this.getType()) * Config.globalDamageReductionModifier);
 	}
 
 	@Override
