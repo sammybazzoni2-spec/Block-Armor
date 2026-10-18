@@ -80,6 +80,15 @@ public final class ModelBAItem {
 					continue;
 				try {
 					TextureAtlasSprite sprite = item.set.getTextureInfo(item.getSlot()).sprite;
+					if (!loggedDiagnostics) {
+						loggedDiagnostics = true;
+						long iconSprites = atlas.getTextureLocations().stream().filter(l -> l.getNamespace().equals(BlockArmor.MODID)).count();
+						BlockArmor.LOGGER.info("Block Armor icon diagnostics: block sprite for "+item+" = "+sprite.contents().name()
+								+ " (missing="+isMissing(sprite)+"), blockarmor sprites in blocks atlas = "+iconSprites
+								+ ", helmet base missing = "+isMissing(atlas.getSprite(new ResourceLocation(BlockArmor.MODID, "items/icons/block_armor_helmet_base")))
+								+ ", helmet template missing = "+isMissing(atlas.getSprite(new ResourceLocation(BlockArmor.MODID, "items/icons/block_armor_helmet1_template")))
+								+ ", cover missing = "+isMissing(atlas.getSprite(new ResourceLocation(BlockArmor.MODID, "items/icons/block_armor_helmet_cover"))));
+					}
 					String armorType = "";
 					EquipmentSlot slot = item.getSlot();
 					if (slot == EquipmentSlot.HEAD)
