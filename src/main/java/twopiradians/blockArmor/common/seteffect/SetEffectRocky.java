@@ -40,7 +40,7 @@ public class SetEffectRocky extends SetEffect {
 			}
 			// slow down under water a bit (if no depth strider)
 			if ((Math.abs(motion.x) > 0 || Math.abs(motion.z) > 0 || motion.y > 0) && 
-					EnchantmentHelper.getDepthStrider(player) == 0) {
+					EnchantmentHelper.getEnchantmentLevel(player.level().registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT).getOrThrow(net.minecraft.world.item.enchantment.Enchantments.DEPTH_STRIDER), player) == 0) {
 				player.setSprinting(false); // prevent sprinting
 				player.setDeltaMovement(
 						motion.x()*(player.onGround() ? 0.14d : 1d), 

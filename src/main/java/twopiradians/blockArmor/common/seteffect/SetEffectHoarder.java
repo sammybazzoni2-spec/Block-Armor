@@ -24,7 +24,8 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.Container;
 import net.minecraft.world.MenuProvider;
-import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.item.crafting.SingleRecipeInput;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Inventory;
@@ -53,6 +54,7 @@ import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus;
 import net.minecraftforge.fml.util.ObfuscationReflectionHelper;
 import net.minecraftforge.server.ServerLifecycleHooks;
 import twopiradians.blockArmor.common.BlockArmor;
+import twopiradians.blockArmor.utils.ItemData;
 import twopiradians.blockArmor.common.item.ArmorSet;
 import twopiradians.blockArmor.common.item.BlockArmorItem;
 
@@ -116,7 +118,7 @@ public class SetEffectHoarder extends SetEffect {
 		tooltip = super.addInformation(stack, isShiftDown, player, tooltip, flagIn);
 
 		// add stored items
-		if (stack.hasTag() && stack.getTag().contains(BlockArmor.MODID+":hoarderItems")) {
+		if (ItemData.has(stack, BlockArmor.MODID+":hoarderItems")) {
 			NonNullList<ItemStack> storedItems = getStoredItems(stack);
 			ArrayList<ItemStack> nonEmptyItems = Lists.newArrayList();
 			for (ItemStack storedItem : storedItems)
@@ -211,33 +213,14 @@ public class SetEffectHoarder extends SetEffect {
 	}
 
 	/**Get all stacks stored in this player's Hoarder items*/
-	public static NonNullList<ItemStack> getStoredItems(Player player) {
-		NonNullList<ItemStack> stacks = NonNullList.create();
-		for (ItemStack wornItem : ArmorSet.getAllSetItems(player, SetEffect.HOARDER))
-			stacks.addAll(getStoredItems(wornItem));
-		return stacks;
-	}
-
-	/**Set stored stacks for this player's Hoarder items*/
-	public static void setStoredItems(Player player, ItemStack[] stacks) {
-		int index = 0;
-		for (ItemStack wornItem : ArmorSet.getAllSetItems(player, SetEffect.HOARDER)) {
-			int size = SLOT_TO_SIZE.get(((BlockArmorItem)wornItem.getItem()).getSlot());
-			if (index + size <= stacks.length) 
-				dirtyItems.put(wornItem, Arrays.copyOfRange(stacks, index, index+size));
-			index += size;
-		}
-	}
-
-	/**Get stacks stored in this Hoarder item*/
 	public static NonNullList<ItemStack> getStoredItems(ItemStack wornItem) {
 		NonNullList<ItemStack> stacks = NonNullList.withSize(SLOT_TO_SIZE.get(((BlockArmorItem)wornItem.getItem()).getSlot()), ItemStack.EMPTY);
-		if (wornItem != null && !wornItem.isEmpty() && wornItem.hasTag()) {
-			CompoundTag nbt = wornItem.getTag();
-			ListTag list = nbt.getList(BlockArmor.MODID+":hoarderItems", 10);
+		if (wornItem != null && !wornItem.isEmpty() && ItemData.has(wornItem, BlockArmor.MODID+":hoarderItems")) {
+			ListTag list = ItemData.getTag(wornItem).getList(BlockArmor.MODID+":hoarderItems", 10);
 			for (int i=0; i<list.size() && i<stacks.size(); ++i) {
 				CompoundTag itemNbt = list.getCompound(i);
-				stacks.set(i, ItemStack.of(itemNbt));
+				if (!itemNbt.isEmpty())
+					stacks.set(i, ItemStack.parse(ItemData.registries(), itemNbt).orElse(ItemStack.EMPTY));
 			}
 		}
 		return stacks;
@@ -246,15 +229,13 @@ public class SetEffectHoarder extends SetEffect {
 	/**Set stacks stored in this Hoarder item*/
 	public static void setStoredItems(ItemStack wornItem, ItemStack[] stacks) {
 		if (wornItem != null) {
-			CompoundTag nbt = wornItem.hasTag() ? wornItem.getTag() : new CompoundTag();
 			ListTag list = new ListTag();
 			for (int i=0; i<stacks.length; ++i)
 				if (stacks[i].isEmpty())
 					list.add(i, new CompoundTag());
 				else
-					list.add(i, stacks[i].save(new CompoundTag()));
-			nbt.put(BlockArmor.MODID+":hoarderItems", list);
-			wornItem.setTag(nbt);
+					list.add(i, stacks[i].save(ItemData.registries(), new CompoundTag()));
+			ItemData.update(wornItem, nbt -> nbt.put(BlockArmor.MODID+":hoarderItems", list));
 		}
 	}
 

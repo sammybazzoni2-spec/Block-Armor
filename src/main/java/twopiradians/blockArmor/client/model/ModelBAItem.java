@@ -58,12 +58,12 @@ public final class ModelBAItem {
 
 	/**Model locations for all armor items*/
 	public static ModelResourceLocation getLocation(BlockArmorItem item) {
-		return new ModelResourceLocation(ForgeRegistries.ITEMS.getKey(item), "inventory");
+		return ModelResourceLocation.inventory(ForgeRegistries.ITEMS.getKey(item));
 	}
 
 	/**Creates inventory icons (via quads) for each Block Armor piece and puts them in the corresponding models.
 	 * @return number of icons created*/
-	public static int createInventoryIcons(Map<ResourceLocation, BakedModel> models) {
+	public static int createInventoryIcons(Map<ModelResourceLocation, BakedModel> models) {
 		int numIcons = 0;
 
 		TextureAtlas atlas = Minecraft.getInstance().getModelManager().getAtlas(TextureAtlas.LOCATION_BLOCKS);
@@ -85,9 +85,9 @@ public final class ModelBAItem {
 						long iconSprites = atlas.getTextureLocations().stream().filter(l -> l.getNamespace().equals(BlockArmor.MODID)).count();
 						BlockArmor.LOGGER.info("Block Armor icon diagnostics: block sprite for "+item+" = "+sprite.contents().name()
 								+ " (missing="+isMissing(sprite)+"), blockarmor sprites in blocks atlas = "+iconSprites
-								+ ", helmet base missing = "+isMissing(atlas.getSprite(new ResourceLocation(BlockArmor.MODID, "items/icons/block_armor_helmet_base")))
-								+ ", helmet template missing = "+isMissing(atlas.getSprite(new ResourceLocation(BlockArmor.MODID, "items/icons/block_armor_helmet1_template")))
-								+ ", cover missing = "+isMissing(atlas.getSprite(new ResourceLocation(BlockArmor.MODID, "items/icons/block_armor_helmet_cover"))));
+								+ ", helmet base missing = "+isMissing(atlas.getSprite(ResourceLocation.fromNamespaceAndPath(BlockArmor.MODID, "items/icons/block_armor_helmet_base")))
+								+ ", helmet template missing = "+isMissing(atlas.getSprite(ResourceLocation.fromNamespaceAndPath(BlockArmor.MODID, "items/icons/block_armor_helmet1_template")))
+								+ ", cover missing = "+isMissing(atlas.getSprite(ResourceLocation.fromNamespaceAndPath(BlockArmor.MODID, "items/icons/block_armor_helmet_cover"))));
 					}
 					String armorType = "";
 					EquipmentSlot slot = item.getSlot();
@@ -104,21 +104,21 @@ public final class ModelBAItem {
 					CompositeModel.Baked.Builder builder = CompositeModel.Baked.builder(true, false, false, sprite, ItemOverrides.EMPTY, transforms);
 
 					//Base texture
-					TextureAtlasSprite baseSprite = atlas.getSprite(new ResourceLocation(BlockArmor.MODID, "items/icons/block_armor_"+armorType+"_base"));
+					TextureAtlasSprite baseSprite = atlas.getSprite(ResourceLocation.fromNamespaceAndPath(BlockArmor.MODID, "items/icons/block_armor_"+armorType+"_base"));
 					List<BlockElement> baseElements = UnbakedGeometryHelper.createUnbakedItemElements(0, baseSprite.contents());
-					builder.addQuads(OPAQUE_LAYER, UnbakedGeometryHelper.bakeElements(baseElements, mat -> baseSprite, state, modelLocation));
+					builder.addQuads(OPAQUE_LAYER, UnbakedGeometryHelper.bakeElements(baseElements, mat -> baseSprite, state));
 
 					//Template textures for left and right halves - the mask is the template's shape, the texture is the block's
 					for (int half = 1; half <= 2; ++half) {
-						TextureAtlasSprite template = atlas.getSprite(new ResourceLocation(BlockArmor.MODID, "items/icons/block_armor_"+armorType+half+"_template"));
+						TextureAtlasSprite template = atlas.getSprite(ResourceLocation.fromNamespaceAndPath(BlockArmor.MODID, "items/icons/block_armor_"+armorType+half+"_template"));
 						List<BlockElement> elements = UnbakedGeometryHelper.createUnbakedItemMaskElements(half, template.contents());
-						builder.addQuads(OPAQUE_LAYER, UnbakedGeometryHelper.bakeElements(elements, mat -> sprite, state, modelLocation));
+						builder.addQuads(OPAQUE_LAYER, UnbakedGeometryHelper.bakeElements(elements, mat -> sprite, state));
 					}
 
 					//Cover texture (translucent so it isn't culled)
-					TextureAtlasSprite cover = atlas.getSprite(new ResourceLocation(BlockArmor.MODID, "items/icons/block_armor_"+armorType+"_cover"));
+					TextureAtlasSprite cover = atlas.getSprite(ResourceLocation.fromNamespaceAndPath(BlockArmor.MODID, "items/icons/block_armor_"+armorType+"_cover"));
 					List<BlockElement> coverElements = UnbakedGeometryHelper.createUnbakedItemMaskElements(TINT_COVER, cover.contents());
-					builder.addQuads(TRANSLUCENT_LAYER, UnbakedGeometryHelper.bakeElements(coverElements, mat -> cover, state, modelLocation));
+					builder.addQuads(TRANSLUCENT_LAYER, UnbakedGeometryHelper.bakeElements(coverElements, mat -> cover, state));
 
 					builder.setParticle(sprite);
 					((DynamicBlockArmorModel) existing).delegate = builder.build();
@@ -139,8 +139,8 @@ public final class ModelBAItem {
 	}
 
 	/**Transforms of item/generated models (from a vanilla item) so armor displays like a flat item*/
-	private static ItemTransforms getGeneratedTransforms(Map<ResourceLocation, BakedModel> models) {
-		BakedModel stick = models.get(new ModelResourceLocation(new ResourceLocation("minecraft", "stick"), "inventory"));
+	private static ItemTransforms getGeneratedTransforms(Map<ModelResourceLocation, BakedModel> models) {
+		BakedModel stick = models.get(ModelResourceLocation.inventory(ResourceLocation.fromNamespaceAndPath("minecraft", "stick")));
 		return stick != null ? stick.getTransforms() : ItemTransforms.NO_TRANSFORMS;
 	}
 

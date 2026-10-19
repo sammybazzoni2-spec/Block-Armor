@@ -24,7 +24,7 @@ public class TextureOverrideInfo {
 		protected Info(int color, ResourceLocation shortLoc) {
 			this.color = color;
 			this.shortLoc = shortLoc;
-			this.longLoc = new ResourceLocation(shortLoc.getNamespace(), "textures/"+shortLoc.getPath()+".png");
+			this.longLoc = ResourceLocation.fromNamespaceAndPath(shortLoc.getNamespace(), "textures/"+shortLoc.getPath()+".png");
 		}			
 		
 	}

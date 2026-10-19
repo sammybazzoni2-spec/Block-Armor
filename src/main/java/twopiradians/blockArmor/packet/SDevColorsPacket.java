@@ -2,12 +2,11 @@ package twopiradians.blockArmor.packet;
 
 import java.util.ArrayList;
 import java.util.UUID;
-import java.util.function.Supplier;
 
 import com.google.common.collect.Maps;
 
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraftforge.event.network.CustomPayloadEvent;
 import twopiradians.blockArmor.common.command.CommandDev;
 
 public class SDevColorsPacket
@@ -40,8 +39,8 @@ public class SDevColorsPacket
 	public static class Handler
 	{
 
-		public static void handle(SDevColorsPacket packet, Supplier<NetworkEvent.Context> ctx) {
-			ctx.get().setPacketHandled(true);
+		public static void handle(SDevColorsPacket packet, CustomPayloadEvent.Context ctx) {
+			
 		}
 	}
 }

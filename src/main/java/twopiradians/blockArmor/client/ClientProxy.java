@@ -107,7 +107,7 @@ public class ClientProxy {
 	}
 
 	/**Resets models and maps block textures (called when models are baked: on startup and when resources are reloaded)*/
-	public static void mapTextures(Map<ResourceLocation, BakedModel> models) {
+	public static void mapTextures(Map<net.minecraft.client.resources.model.ModelResourceLocation, BakedModel> models) {
 		// reset model map and animation states
 		modelMaps = Maps.newHashMap();
 		ArmorSet.spriteTickers = null;

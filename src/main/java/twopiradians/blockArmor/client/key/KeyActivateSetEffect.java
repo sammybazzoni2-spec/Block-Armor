@@ -14,6 +14,7 @@ import net.minecraftforge.event.TickEvent.ClientTickEvent;
 import net.minecraftforge.event.TickEvent.Phase;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.network.PacketDistributor;
 import twopiradians.blockArmor.common.BlockArmor;
 import twopiradians.blockArmor.packet.CActivateSetEffectPacket;
 
@@ -41,7 +42,7 @@ public class KeyActivateSetEffect {
 			UUID player = Minecraft.getInstance().player.getUUID();
 			if (!isKeyDown.containsKey(player) || ACTIVATE_SET_EFFECT.isDown() != isKeyDown.get(player)) {
 				isKeyDown.put(player, ACTIVATE_SET_EFFECT.isDown());
-				BlockArmor.NETWORK.sendToServer(new CActivateSetEffectPacket(ACTIVATE_SET_EFFECT.isDown(), player));
+				BlockArmor.NETWORK.send(new CActivateSetEffectPacket(ACTIVATE_SET_EFFECT.isDown(), player), PacketDistributor.SERVER.noArg());
 			}
 		}
 	}

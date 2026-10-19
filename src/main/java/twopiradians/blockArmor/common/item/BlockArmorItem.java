@@ -1,25 +1,23 @@
 package twopiradians.blockArmor.common.item;
 
 import java.util.List;
-import java.util.UUID;
 import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
-
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.ai.attributes.Attribute;
+import net.minecraft.world.entity.EquipmentSlotGroup;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -31,6 +29,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Rarity;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.ItemAttributeModifiers;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -40,25 +39,26 @@ import twopiradians.blockArmor.client.model.ModelBAArmor;
 import twopiradians.blockArmor.common.command.CommandDev;
 import twopiradians.blockArmor.common.config.Config;
 import twopiradians.blockArmor.common.seteffect.SetEffect;
+import twopiradians.blockArmor.utils.ItemData;
+import net.minecraftforge.event.entity.player.PlayerDestroyItemEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 
+@Mod.EventBusSubscriber
 public class BlockArmorItem extends ArmorItem {
-	/** Copied from ArmorItem bc private */
-	private static final UUID[] ARMOR_MODIFIERS = new UUID[] { UUID.fromString("845DB27C-C624-495F-8C9F-6020A9A58B6B"),
-			UUID.fromString("D8499B04-0E66-4726-AB29-64469D734E0D"),
-			UUID.fromString("9F3D476D-C118-4544-8365-64846904B48E"),
-			UUID.fromString("2AD3F246-FEE1-4E67-B886-69FD380BB150") };
 	/** The ArmorSet that this item belongs to */
 	public ArmorSet set;
 	/** Equipment slot of this item (ArmorItem only stores a Type now) */
 	private final EquipmentSlot slot;
-	/** Max damage (bc Item.maxDamage is final) */
+	/** Max damage from the (changeable) material - the stack's max damage component is kept in sync with this */
 	private int customMaxDamage;
-	/** Armor material (bc ArmorItem.material is final) */
-	private ArmorMaterial material;
-	private HashMultimap<Attribute, AttributeModifier> attributes;
+	/** Armor stats (changeable by config) */
+	private BlockArmorMaterial blockMaterial;
 
 	public BlockArmorItem(BlockArmorMaterial material, EquipmentSlot slot, ArmorSet set) {
-		super(material, typeForSlot(slot), new Item.Properties());
+		super(Holder.direct(material.toVanilla()), typeForSlot(slot), new Item.Properties()
+				.durability(material.getDurabilityForSlot(slot))
+				.rarity(set.setEffects.isEmpty() ? Rarity.COMMON : Rarity.UNCOMMON));
 		this.slot = slot;
 		this.set = set;
 		this.setMaterial(material);
@@ -84,12 +84,10 @@ public class BlockArmorItem extends ArmorItem {
 	/** Change armor texture based on block */
 	@Override
 	@OnlyIn(Dist.CLIENT)
-	public String getArmorTexture(ItemStack stack, Entity entity, EquipmentSlot slot, String type) {
+	public ResourceLocation getArmorTexture(ItemStack stack, Entity entity, EquipmentSlot slot, ArmorMaterial.Layer layer, boolean inner) {
 		TextureAtlasSprite sprite = this.set.getTextureInfo(slot).sprite;
-		String texture = sprite.contents().name() + ".png";
-		int index = texture.indexOf(":");
-		texture = texture.substring(0, index + 1) + "textures/" + texture.substring(index + 1);
-		return texture;
+		ResourceLocation name = sprite.contents().name();
+		return name.withPath("textures/" + name.getPath() + ".png");
 	}
 
 	@Override 
@@ -114,13 +112,11 @@ public class BlockArmorItem extends ArmorItem {
 		});
 	}
 
-	@Override
-	public void setDamage(ItemStack stack, int damage) {
-		// default
-		stack.getOrCreateTag().putInt("Damage", Math.max(0, damage));
-
-		// spawn hoarder items
-		if (damage >= this.getMaxDamage(stack) && this.set.setEffects.contains(SetEffect.HOARDER))
+	/** Spawn hoarder items when a worn piece breaks */
+	@SubscribeEvent
+	public static void onItemDestroyed(PlayerDestroyItemEvent event) {
+		ItemStack stack = event.getOriginal();
+		if (stack.getItem() instanceof BlockArmorItem && ((BlockArmorItem) stack.getItem()).set.setEffects.contains(SetEffect.HOARDER))
 			SetEffect.HOARDER.onBreak(stack);
 	}
 
@@ -130,36 +126,31 @@ public class BlockArmorItem extends ArmorItem {
 		return ArmorSet.getItemStackDisplayName(stack.getItem(), this.slot);
 	}
 
-	/** Handles the attributes when wearing an armor set */
+	/** Handles the attributes (armor stats from the changeable material + set effects when wearing an armor set) */
 	@Override
-	public Multimap<Attribute, AttributeModifier> getAttributeModifiers(EquipmentSlot slot, ItemStack stack) {
-		Multimap<Attribute, AttributeModifier> map = slot == this.slot ? HashMultimap.create(this.attributes) : HashMultimap.create();
-		if (slot != this.slot)
-			return map;
+	public ItemAttributeModifiers getDefaultAttributeModifiers(ItemStack stack) {
+		ItemAttributeModifiers.Builder builder = ItemAttributeModifiers.builder();
+		EquipmentSlotGroup group = EquipmentSlotGroup.bySlot(this.slot);
+		ResourceLocation id = ResourceLocation.withDefaultNamespace("armor." + this.getType().getName());
+		builder.add(Attributes.ARMOR, new AttributeModifier(id, (double) this.getDefense(), AttributeModifier.Operation.ADD_VALUE), group);
+		builder.add(Attributes.ARMOR_TOUGHNESS, new AttributeModifier(id, (double) this.getToughness(), AttributeModifier.Operation.ADD_VALUE), group);
+		if (this.blockMaterial.getKnockbackResistance() > 0)
+			builder.add(Attributes.KNOCKBACK_RESISTANCE, new AttributeModifier(id, 
+					this.blockMaterial.getKnockbackResistance() / 10d * Config.globalKnockbackResistanceModifier, 
+					AttributeModifier.Operation.ADD_VALUE), group);
 
 		for (SetEffect effect : set.setEffects)
-			map = effect.getAttributeModifiers(map, slot, stack);
+			effect.addAttributeModifiers(builder, group, stack);
 
-		return map;
-	}
-
-	/** Set to have tooltip color show if item has effect */
-	@Override
-	public Rarity getRarity(ItemStack stack) {
-		if (stack.isEnchanted())
-			return Rarity.RARE;
-		else if (!set.setEffects.isEmpty())
-			return Rarity.UNCOMMON;
-		else
-			return Rarity.COMMON;
+		return builder.build();
 	}
 
 	/** Deals with armor tooltips */
 	@Override
 	@OnlyIn(Dist.CLIENT)
-	public void appendHoverText(ItemStack stack, @Nullable Level worldIn, List<Component> tooltip,
+	public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltip,
 			TooltipFlag flagIn) {
-		if (stack.hasTag() && stack.getTag().contains("devSpawned"))
+		if (ItemData.has(stack, "devSpawned"))
 			tooltip.add(Component.literal(ChatFormatting.DARK_PURPLE + "" + ChatFormatting.BOLD + "Dev Spawned"));
 
 		if (!set.setEffects.isEmpty() && set.setEffects.get(0).isEnabled()) {
@@ -178,24 +169,40 @@ public class BlockArmorItem extends ArmorItem {
 		}
 	}
 
-	/** Mostly handles nbt and enchanting armor */
+	/** Handles nbt, enchanting armor, and (when worn) most of the armor set special effects and bonuses */
 	@Override
 	public void inventoryTick(ItemStack stack, Level world, Entity entity, int itemSlot, boolean isSelected) {
 		// delete dev spawned items if not in dev's inventory and delete disabled items
 		// (except missingTexture items in SMP)
 		if (stack.isEmpty() || (!set.isEnabled() && !world.isClientSide & entity instanceof Player)
-				|| (!world.isClientSide && entity instanceof Player && stack.hasTag()
-						&& stack.getTag().contains("devSpawned") && !CommandDev.DEVS.contains(entity.getUUID()))) {
-			if (((Player) entity).getInventory().getItem(itemSlot) == stack)
-				((Player) entity).getInventory().setItem(itemSlot, ItemStack.EMPTY);
+				|| (!world.isClientSide && entity instanceof Player && ItemData.has(stack, "devSpawned") 
+						&& !CommandDev.DEVS.contains(entity.getUUID()))) {
+			if (entity instanceof Player) {
+				Player player = (Player) entity;
+				if (player.getItemBySlot(this.slot) == stack)
+					player.setItemSlot(this.slot, ItemStack.EMPTY);
+				else
+					for (int i = 0; i < player.getInventory().getContainerSize(); ++i)
+						if (player.getInventory().getItem(i) == stack)
+							player.getInventory().setItem(i, ItemStack.EMPTY);
+			}
 			return;
 		}
 
-		if (!stack.hasTag())
-			stack.setTag(new CompoundTag());
+		// keep max damage in sync with config
+		if (stack.getMaxDamage() != this.customMaxDamage)
+			stack.set(DataComponents.MAX_DAMAGE, this.customMaxDamage);
 
 		for (SetEffect effect : set.setEffects)
 			effect.onUpdate(stack, world, entity, slot.getFilterFlag(), isSelected);
+
+		// armor tick if worn
+		if (entity instanceof Player && ((Player) entity).getItemBySlot(this.slot) == stack) {
+			Player player = (Player) entity;
+			for (SetEffect effect : set.setEffects)
+				if (ArmorSet.getWornSetEffects(player).contains(effect))
+					effect.onArmorTick(world, player, stack);
+		}
 	}
 
 	/** Delete dev spawned dropped items */
@@ -205,78 +212,40 @@ public class BlockArmorItem extends ArmorItem {
 		// missingTexture items in SMP)
 		if ((!set.isEnabled() && !entityItem.level().isClientSide)
 				|| (!entityItem.level().isClientSide && entityItem != null && entityItem.getItem() != null
-				&& entityItem.getItem().hasTag() && entityItem.getItem().getTag().contains("devSpawned"))) {
+				&& ItemData.has(entityItem.getItem(), "devSpawned"))) {
 			entityItem.discard();
 			return true;
 		}
 		return false;
 	}
 
-	/** Handles most of the armor set special effects and bonuses. */
-	@Override
-	public void onArmorTick(ItemStack stack, Level world, Player player) {
-		// delete dev spawned items if not worn by dev and delete disabled items (except
-		// missingTexture items in SMP)
-		if (stack.isEmpty() || (!set.isEnabled() && !world.isClientSide)
-				|| (!world.isClientSide && stack != null && stack.hasTag() && stack.getTag().contains("devSpawned")
-				&& !CommandDev.DEVS.contains(player.getUUID())
-				&& player.getItemBySlot(this.slot) == stack)) {
-			player.setItemSlot(this.slot, ItemStack.EMPTY);
-			return;
-		}
-
-		if (!stack.hasTag())
-			stack.setTag(new CompoundTag());
-
-		for (SetEffect effect : set.setEffects)
-			if (ArmorSet.getWornSetEffects(player).contains(effect))
-				effect.onArmorTick(world, player, stack);
-	}
-
 	// ======================= CHANGE MATERIAL FROM CONFIG =======================
 
-	public void setMaterial(ArmorMaterial material) {
-		this.material = material;
-		// recreate attributes
-		this.attributes = HashMultimap.create();
-		UUID uuid = ARMOR_MODIFIERS[slot.getIndex()];
-		this.attributes.put(Attributes.ARMOR, new AttributeModifier(uuid, "Armor modifier",
-				(double) this.getDefense(), AttributeModifier.Operation.ADDITION));
-		this.attributes.put(Attributes.ARMOR_TOUGHNESS, new AttributeModifier(uuid, "Armor toughness",
-				(double) this.getToughness(), AttributeModifier.Operation.ADDITION));
-		if (this.material.getKnockbackResistance() > 0)
-			this.attributes.put(Attributes.KNOCKBACK_RESISTANCE,
-					new AttributeModifier(uuid, "Armor knockback resistance",
-							(this.material.getKnockbackResistance()) / 10d * Config.globalKnockbackResistanceModifier,
-							AttributeModifier.Operation.ADDITION));
-		// change max damage (bc method is final)
-		this.customMaxDamage = (int) (material.getDurabilityForType(this.getType()) * Config.globalDurabilityModifier);
+	public void setMaterial(BlockArmorMaterial material) {
+		this.blockMaterial = material;
+		// change max damage (stack component is updated from this in inventoryTick)
+		this.customMaxDamage = (int) (material.getDurabilityForSlot(this.slot) * Config.globalDurabilityModifier);
 	}
 
-	/** Max damage is calculated from the (changeable) material instead of Item#maxDamage */
-	@Override
-	public int getMaxDamage(ItemStack stack) {
+	public BlockArmorMaterial getBlockMaterial() {
+		return this.blockMaterial;
+	}
+
+	public int getCustomMaxDamage() {
 		return this.customMaxDamage;
 	}
 
-	@Override
-	public ArmorMaterial getMaterial() {
-		return this.material;
-	}
-
-	@Override
 	public int getDefense() {
-		return (int) (this.material.getDefenseForType(this.getType()) * Config.globalDamageReductionModifier);
+		return (int) (this.blockMaterial.getDefenseForSlot(this.slot) * Config.globalDamageReductionModifier);
 	}
 
-	@Override
 	public float getToughness() {
-		return (float) (this.material.getToughness() * Config.globalToughnessModifier);
+		return (float) (this.blockMaterial.getToughness() * Config.globalToughnessModifier);
 	}
 
 	@Override
 	public int getEnchantmentValue() {
-		return (int) (this.material.getEnchantmentValue() * Config.globalEnchantabilityModifier);
+		return (int) (this.blockMaterial.getEnchantmentValue() * Config.globalEnchantabilityModifier);
 	}
 
 }

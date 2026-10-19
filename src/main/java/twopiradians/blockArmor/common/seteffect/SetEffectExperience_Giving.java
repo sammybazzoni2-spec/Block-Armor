@@ -30,9 +30,9 @@ public class SetEffectExperience_Giving extends SetEffect {
 			// give exp this way for mending
 			// modified from EntityXPOrb#onCollideWithPlayer
 			boolean hasMending = false;
-			Entry<EquipmentSlot, ItemStack> entry = EnchantmentHelper.getRandomItemWith(Enchantments.MENDING, player, ItemStack::isDamaged);
-			if (entry != null) {
-				ItemStack itemstack = entry.getValue();
+			java.util.Optional<net.minecraft.world.item.enchantment.EnchantedItemInUse> entry = EnchantmentHelper.getRandomItemWith(net.minecraft.world.item.enchantment.EnchantmentEffectComponents.REPAIR_WITH_XP, player, ItemStack::isDamaged);
+			if (entry.isPresent()) {
+				ItemStack itemstack = entry.get().itemStack();
 				if (!itemstack.isEmpty() && itemstack.isDamaged()) {
 					itemstack.setDamageValue(itemstack.getDamageValue() - 1);
 					hasMending = true;

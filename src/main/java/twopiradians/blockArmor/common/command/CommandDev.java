@@ -19,7 +19,7 @@ import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.ResourceLocationArgument;
 import net.minecraft.commands.synchronization.SuggestionProviders;
-import net.minecraft.nbt.CompoundTag;
+import twopiradians.blockArmor.utils.ItemData;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -43,8 +43,8 @@ public class CommandDev  {
 		add(UUID.fromString("93d28330-e1e2-447b-b552-00cb13e9afbd")); //2piradians
 	}};
 	public static HashMap<UUID, Float[]> devColors = Maps.newHashMap();			
-	private static final SuggestionProvider<CommandSourceStack> SETS_SUGGESTION = SuggestionProviders.register(new ResourceLocation(BlockArmor.MODID, "armor_sets"), (context, builder) -> { 
-		return SharedSuggestionProvider.suggestResource(setMap.keySet().stream().map((str) -> new ResourceLocation(str)).collect(Collectors.toList()), builder);  
+	private static final SuggestionProvider<CommandSourceStack> SETS_SUGGESTION = SuggestionProviders.register(ResourceLocation.fromNamespaceAndPath(BlockArmor.MODID, "armor_sets"), (context, builder) -> { 
+		return SharedSuggestionProvider.suggestResource(setMap.keySet().stream().map((str) -> ResourceLocation.parse(str)).collect(Collectors.toList()), builder);  
 	});
 
 	/** Add block to list of all block names for created Armor Sets */
@@ -103,7 +103,7 @@ public class CommandDev  {
 		// needs to be inverted for some reason..
 		else
 			devColors.put(player.getUUID(), new Float[] {1-red, 1-green, 1-blue});
-		BlockArmor.NETWORK.send(PacketDistributor.ALL.noArg(), new SDevColorsPacket());
+		BlockArmor.NETWORK.send(new SDevColorsPacket(), PacketDistributor.ALL.noArg());
 		return 1;
 	}
 
@@ -116,9 +116,7 @@ public class CommandDev  {
 			for (EquipmentSlot slot : ArmorSet.SLOTS) {
 				ItemStack stack = player.getItemBySlot(slot);
 				ItemStack newStack = new ItemStack(set.getArmorForSlot(slot));
-				CompoundTag nbt = new CompoundTag();
-				nbt.putBoolean("devSpawned", true);
-				newStack.setTag(nbt);
+				ItemData.setBoolean(newStack, "devSpawned", true);
 				if (stack == null || stack.isEmpty() || stack.getItem() instanceof BlockArmorItem) 
 					player.setItemSlot(slot, newStack);
 			}

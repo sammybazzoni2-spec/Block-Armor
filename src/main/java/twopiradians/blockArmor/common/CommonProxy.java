@@ -12,7 +12,7 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.CraftingBookCategory;
 import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.event.OnDatapackSyncEvent;
 import net.minecraftforge.event.RegisterCommandsEvent;
@@ -43,8 +43,8 @@ public class CommonProxy {
 		@SubscribeEvent
 		public static void registerModifierSerializers(final RegisterEvent event) {
 			event.register(ForgeRegistries.Keys.GLOBAL_LOOT_MODIFIER_SERIALIZERS, helper -> {
-				helper.register(new ResourceLocation(BlockArmor.MODID, "set_effect_autosmelt"), EnchantmentSmeltingModifier.CODEC.get());
-				helper.register(new ResourceLocation(BlockArmor.MODID, "set_effect_lucky"), SetEffectLuckyModifier.CODEC.get());
+				helper.register(ResourceLocation.fromNamespaceAndPath(BlockArmor.MODID, "set_effect_autosmelt"), EnchantmentSmeltingModifier.CODEC.get());
+				helper.register(ResourceLocation.fromNamespaceAndPath(BlockArmor.MODID, "set_effect_lucky"), SetEffectLuckyModifier.CODEC.get());
 			});
 		}
 
@@ -55,10 +55,7 @@ public class CommonProxy {
 	}
 	
 	private static void registerPackets() {
-		int id = 0;
-		BlockArmor.NETWORK.registerMessage(id++, SDevColorsPacket.class, SDevColorsPacket::encode, SDevColorsPacket::decode, SDevColorsPacket.Handler::handle, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
-		BlockArmor.NETWORK.registerMessage(id++, CActivateSetEffectPacket.class, CActivateSetEffectPacket::encode, CActivateSetEffectPacket::decode, CActivateSetEffectPacket.Handler::handle, Optional.of(NetworkDirection.PLAY_TO_SERVER));
-		BlockArmor.NETWORK.registerMessage(id++, SSyncCooldownsPacket.class, SSyncCooldownsPacket::encode, SSyncCooldownsPacket::decode, SSyncCooldownsPacket.Handler::handle, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+		// packets are registered with the channel in BlockArmor
 	}
 	
 	@SubscribeEvent
@@ -81,27 +78,27 @@ public class CommonProxy {
 	/**Adds a crafting recipe for each enabled armor piece to the server's recipe manager*/
 	private static void registerRecipes(MinecraftServer server) {
 		try {
-			ArrayList<Recipe<?>> recipes = new ArrayList<Recipe<?>>(server.getRecipeManager().getRecipes());
+			ArrayList<RecipeHolder<?>> recipes = new ArrayList<RecipeHolder<?>>(server.getRecipeManager().getRecipes());
 			for (ArmorSet set : ArmorSet.allSets) {
 				if (set.isEnabled() && set.helmet != null) {
 					ItemStack stack = set.getStack();
 					NonNullList<Ingredient> helmetRecipe = NonNullList.of(Ingredient.EMPTY,
-							Ingredient.of(stack), Ingredient.of(stack), Ingredient.of(stack),
-							Ingredient.of(stack), Ingredient.EMPTY, Ingredient.of(stack));
+							Ingredient.of(stack.getItem()), Ingredient.of(stack.getItem()), Ingredient.of(stack.getItem()),
+							Ingredient.of(stack.getItem()), Ingredient.EMPTY, Ingredient.of(stack.getItem()));
 
 					NonNullList<Ingredient> armorRecipe = NonNullList.of(Ingredient.EMPTY,
-							Ingredient.of(stack), Ingredient.EMPTY, Ingredient.of(stack),
-							Ingredient.of(stack), Ingredient.of(stack), Ingredient.of(stack),
-							Ingredient.of(stack), Ingredient.of(stack), Ingredient.of(stack));
+							Ingredient.of(stack.getItem()), Ingredient.EMPTY, Ingredient.of(stack.getItem()),
+							Ingredient.of(stack.getItem()), Ingredient.of(stack.getItem()), Ingredient.of(stack.getItem()),
+							Ingredient.of(stack.getItem()), Ingredient.of(stack.getItem()), Ingredient.of(stack.getItem()));
 
 					NonNullList<Ingredient> legsRecipe = NonNullList.of(Ingredient.EMPTY,
-							Ingredient.of(stack), Ingredient.of(stack), Ingredient.of(stack),
-							Ingredient.of(stack), Ingredient.EMPTY, Ingredient.of(stack),
-							Ingredient.of(stack), Ingredient.EMPTY, Ingredient.of(stack));
+							Ingredient.of(stack.getItem()), Ingredient.of(stack.getItem()), Ingredient.of(stack.getItem()),
+							Ingredient.of(stack.getItem()), Ingredient.EMPTY, Ingredient.of(stack.getItem()),
+							Ingredient.of(stack.getItem()), Ingredient.EMPTY, Ingredient.of(stack.getItem()));
 
 					NonNullList<Ingredient> bootsRecipe = NonNullList.of(Ingredient.EMPTY,
-							Ingredient.of(stack), Ingredient.EMPTY, Ingredient.of(stack),
-							Ingredient.of(stack), Ingredient.EMPTY, Ingredient.of(stack));
+							Ingredient.of(stack.getItem()), Ingredient.EMPTY, Ingredient.of(stack.getItem()),
+							Ingredient.of(stack.getItem()), Ingredient.EMPTY, Ingredient.of(stack.getItem()));
 
 					recipes.add(createRecipe(set, set.helmet, EquipmentSlot.HEAD, 3, 2, helmetRecipe));
 					recipes.add(createRecipe(set, set.chestplate, EquipmentSlot.CHEST, 3, 3, armorRecipe));
@@ -117,15 +114,15 @@ public class CommonProxy {
 		}
 	}
 
-	private static RecipeBlockArmor createRecipe(ArmorSet set, net.minecraft.world.item.Item item, EquipmentSlot slot, int width, int height, NonNullList<Ingredient> ingredients) {
+	private static RecipeHolder<?> createRecipe(ArmorSet set, net.minecraft.world.item.Item item, EquipmentSlot slot, int width, int height, NonNullList<Ingredient> ingredients) {
 		ResourceLocation loc = ForgeRegistries.ITEMS.getKey(item);
-		return new RecipeBlockArmor(loc, set, BlockArmor.MODID+"_"+slot.getName(), CraftingBookCategory.EQUIPMENT, width, height, ingredients, new ItemStack(item));
+		return new RecipeHolder<RecipeBlockArmor>(loc, new RecipeBlockArmor(set, BlockArmor.MODID+"_"+slot.getName(), CraftingBookCategory.EQUIPMENT, width, height, ingredients, new ItemStack(item)));
 	}
 
 	@SubscribeEvent
 	public static void playerJoin(PlayerLoggedInEvent event) {
 		if (!event.getEntity().level().isClientSide && event.getEntity() instanceof ServerPlayer)
-			BlockArmor.NETWORK.send(PacketDistributor.PLAYER.with(()->(ServerPlayer) event.getEntity()), new SDevColorsPacket());
+			BlockArmor.NETWORK.send(new SDevColorsPacket(), PacketDistributor.PLAYER.with((ServerPlayer) event.getEntity()));
 	}
 	
 	/**Set world time*/

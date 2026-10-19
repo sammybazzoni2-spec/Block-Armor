@@ -24,7 +24,7 @@ public class ModBlocks {
 		public static void registerBlocks(final RegisterEvent event) {
 			event.register(ForgeRegistries.Keys.BLOCKS, helper -> {
 				allBlocks.add(MOVING_LIGHT_SOURCE);
-				helper.register(new ResourceLocation(BlockArmor.MODID, "moving_light_source"), MOVING_LIGHT_SOURCE);
+				helper.register(ResourceLocation.fromNamespaceAndPath(BlockArmor.MODID, "moving_light_source"), MOVING_LIGHT_SOURCE);
 			});
 		}
 

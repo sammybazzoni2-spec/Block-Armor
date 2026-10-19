@@ -36,7 +36,7 @@ public class BlockArmorCreativeTab {
 						for (ItemStack stack : VANILLA_STACKS)
 							output.accept(stack);
 					}).build();
-			helper.register(new ResourceLocation(BlockArmor.MODID, "vanilla"), vanillaTab);
+			helper.register(ResourceLocation.fromNamespaceAndPath(BlockArmor.MODID, "vanilla"), vanillaTab);
 			moddedTab = CreativeModeTab.builder()
 					.title(Component.translatable("itemGroup.blockArmorModded"))
 					.icon(() -> makeIcon(true))
@@ -44,7 +44,7 @@ public class BlockArmorCreativeTab {
 						for (ItemStack stack : MODDED_STACKS)
 							output.accept(stack);
 					}).build();
-			helper.register(new ResourceLocation(BlockArmor.MODID, "modded"), moddedTab);
+			helper.register(ResourceLocation.fromNamespaceAndPath(BlockArmor.MODID, "modded"), moddedTab);
 		});
 	}
 

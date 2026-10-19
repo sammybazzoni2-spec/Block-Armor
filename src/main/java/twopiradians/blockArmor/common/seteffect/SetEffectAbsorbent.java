@@ -59,10 +59,8 @@ public class SetEffectAbsorbent extends SetEffect {
 						ItemStack oldStack = player.getItemBySlot(slot);
 						if (oldStack != null && oldStack.getItem() instanceof BlockArmorItem && 
 								((BlockArmorItem)oldStack.getItem()).set == wornSet) { //only change if wet sponge 
-							CompoundTag nbt = new CompoundTag();
-							oldStack.save(nbt);
-							nbt.putString("id", ForgeRegistries.ITEMS.getKey(drySet.getArmorForSlot(slot)).toString());
-							player.setItemSlot(slot, ItemStack.of(nbt));
+							player.setItemSlot(slot, new ItemStack(drySet.getArmorForSlot(slot).builtInRegistryHolder(), 
+									oldStack.getCount(), oldStack.getComponentsPatch()));
 						}
 					}
 				}
@@ -77,10 +75,8 @@ public class SetEffectAbsorbent extends SetEffect {
 						ItemStack oldStack = player.getItemBySlot(slot);
 						if (oldStack != null && oldStack.getItem() instanceof BlockArmorItem && 
 								((BlockArmorItem)oldStack.getItem()).set == wornSet) { //only change if dry sponge 
-							CompoundTag nbt = new CompoundTag();
-							oldStack.save(nbt);
-							nbt.putString("id", ForgeRegistries.ITEMS.getKey(wetSet.getArmorForSlot(slot)).toString());
-							player.setItemSlot(slot, ItemStack.of(nbt));
+							player.setItemSlot(slot, new ItemStack(wetSet.getArmorForSlot(slot).builtInRegistryHolder(), 
+									oldStack.getCount(), oldStack.getComponentsPatch()));
 						}
 					}
 					

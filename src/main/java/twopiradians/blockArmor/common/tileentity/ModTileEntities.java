@@ -19,7 +19,7 @@ public class ModTileEntities{
 		public static void registerTE(final RegisterEvent event) {
 			event.register(ForgeRegistries.Keys.BLOCK_ENTITY_TYPES, helper -> {
 				TileEntityMovingLightSource.type = BlockEntityType.Builder.of(TileEntityMovingLightSource::new, ModBlocks.MOVING_LIGHT_SOURCE).build(null);
-				helper.register(new ResourceLocation(BlockArmor.MODID, "light_tile_entity"), TileEntityMovingLightSource.type);
+				helper.register(ResourceLocation.fromNamespaceAndPath(BlockArmor.MODID, "light_tile_entity"), TileEntityMovingLightSource.type);
 			});
 		}
 	}

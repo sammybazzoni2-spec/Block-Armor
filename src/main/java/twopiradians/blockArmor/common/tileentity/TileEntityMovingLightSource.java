@@ -13,6 +13,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import twopiradians.blockArmor.common.block.BlockMovingLightSource;
 import twopiradians.blockArmor.common.item.ArmorSet;
+import twopiradians.blockArmor.utils.ItemData;
 import twopiradians.blockArmor.common.seteffect.SetEffect;
 import twopiradians.blockArmor.common.seteffect.SetEffectIlluminated;
 
@@ -49,7 +50,7 @@ public class TileEntityMovingLightSource extends BlockEntity implements EntityBl
 			//check if player has moved away from the tile entity
 			Player player = level.getNearestPlayer(pos.getX()+0.5D, pos.getY()+0.5D, pos.getZ()+0.5D, 2.0D, false);		
 			ItemStack stack = ArmorSet.getFirstSetItem(player, light.effect);
-			if ((player == null || stack == null || (stack.hasTag() && stack.getTag().getBoolean("deactivated"))) &&
+			if ((player == null || stack == null || ItemData.getBoolean(stack, "deactivated")) &&
 					level.getBlockState(pos).getBlock() instanceof BlockMovingLightSource) {
 				if (--light.despawnTimer <= 0) 
 					level.removeBlock(pos, false);

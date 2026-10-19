@@ -9,8 +9,12 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.minecraftforge.network.NetworkRegistry;
-import net.minecraftforge.network.simple.SimpleChannel;
+import net.minecraftforge.network.ChannelBuilder;
+import net.minecraftforge.network.NetworkDirection;
+import net.minecraftforge.network.SimpleChannel;
+import twopiradians.blockArmor.packet.CActivateSetEffectPacket;
+import twopiradians.blockArmor.packet.SDevColorsPacket;
+import twopiradians.blockArmor.packet.SSyncCooldownsPacket;
 import twopiradians.blockArmor.client.ClientProxy;
 import twopiradians.blockArmor.client.key.KeyActivateSetEffect;
 
@@ -31,12 +35,18 @@ public class BlockArmor {
 	public static final String MODID = "blockarmor";
 	
 	public static final Logger LOGGER = LogManager.getLogger(MODID);
-	public static final SimpleChannel NETWORK = NetworkRegistry.ChannelBuilder
-			.named(new ResourceLocation(MODID, "main_channel"))
-			.clientAcceptedVersions(NetworkRegistry.ABSENT.version()::equals)
-			.serverAcceptedVersions(NetworkRegistry.ABSENT.version()::equals)
-			.networkProtocolVersion(() -> NetworkRegistry.ABSENT.version())
-			.simpleChannel();
+	public static final SimpleChannel NETWORK = ChannelBuilder
+			.named(ResourceLocation.fromNamespaceAndPath(MODID, "main_channel"))
+			.networkProtocolVersion(1)
+			.optional() // mod is optional on either side
+			.simpleChannel()
+			.messageBuilder(SDevColorsPacket.class, 0, NetworkDirection.PLAY_TO_CLIENT)
+				.encoder(SDevColorsPacket::encode).decoder(SDevColorsPacket::decode).consumerMainThread(SDevColorsPacket.Handler::handle).add()
+			.messageBuilder(CActivateSetEffectPacket.class, 1, NetworkDirection.PLAY_TO_SERVER)
+				.encoder(CActivateSetEffectPacket::encode).decoder(CActivateSetEffectPacket::decode).consumerMainThread(CActivateSetEffectPacket.Handler::handle).add()
+			.messageBuilder(SSyncCooldownsPacket.class, 2, NetworkDirection.PLAY_TO_CLIENT)
+				.encoder(SSyncCooldownsPacket::encode).decoder(SSyncCooldownsPacket::decode).consumerMainThread(SSyncCooldownsPacket.Handler::handle).add()
+			.build();
 	public static KeyActivateSetEffect key = new KeyActivateSetEffect();
 
 	public BlockArmor() {}

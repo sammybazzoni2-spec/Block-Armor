@@ -9,6 +9,7 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
@@ -28,7 +29,7 @@ import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import net.minecraft.world.phys.Vec3;
 import java.util.function.Supplier;
 import com.google.common.base.Suppliers;
-import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.minecraftforge.common.loot.IGlobalLootModifier;
@@ -44,8 +45,7 @@ public class SetEffectLucky extends SetEffect {
 	protected SetEffectLucky() {
 		super();
 		this.color = ChatFormatting.DARK_GREEN;
-		this.attributes.put(Attributes.LUCK, new AttributeModifier(LUCK_UUID, 
-				"Luck", 3, AttributeModifier.Operation.ADDITION));
+		this.attributes.put(Attributes.LUCK, new AttributeModifier(LUCK_UUID, 3, AttributeModifier.Operation.ADD_VALUE));
 	}
 
 	/**Increase looting*/
@@ -82,7 +82,7 @@ public class SetEffectLucky extends SetEffect {
 
 	public static class SetEffectLuckyModifier extends LootModifier {
 
-		public static final Supplier<Codec<SetEffectLuckyModifier>> CODEC = Suppliers.memoize(() -> RecordCodecBuilder.create(inst -> 
+		public static final Supplier<MapCodec<SetEffectLuckyModifier>> CODEC = Suppliers.memoize(() -> RecordCodecBuilder.mapCodec(inst -> 
 				codecStart(inst).apply(inst, SetEffectLuckyModifier::new)));
 
 		protected SetEffectLuckyModifier(LootItemCondition[] conditionsIn) {
@@ -90,7 +90,7 @@ public class SetEffectLucky extends SetEffect {
 		}
 
 		@Override
-		public Codec<? extends IGlobalLootModifier> codec() {
+		public MapCodec<? extends IGlobalLootModifier> codec() {
 			return CODEC.get();
 		}
 
@@ -111,7 +111,7 @@ public class SetEffectLucky extends SetEffect {
 						if (stack != null && stack.getItem() == item)
 							return generatedLoot;
 				if (pos != null && state != null && state.getBlock() instanceof DropExperienceBlock &&
-						(tool == null || EnchantmentHelper.getItemEnchantmentLevel(Enchantments.SILK_TOUCH, tool) <= 0)) {
+						(tool == null || EnchantmentHelper.getItemEnchantmentLevel(context.getLevel().registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(Enchantments.SILK_TOUCH), tool) <= 0)) {
 					int beforeCount = 0;
 					int afterCount = 0;
 					for (ItemStack stack : generatedLoot) {

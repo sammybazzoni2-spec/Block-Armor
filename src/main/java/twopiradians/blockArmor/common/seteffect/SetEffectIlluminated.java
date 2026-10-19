@@ -15,6 +15,7 @@ import twopiradians.blockArmor.common.BlockArmor;
 import twopiradians.blockArmor.common.block.BlockMovingLightSource;
 import twopiradians.blockArmor.common.block.ModBlocks;
 import twopiradians.blockArmor.common.item.ArmorSet;
+import twopiradians.blockArmor.utils.ItemData;
 import twopiradians.blockArmor.utils.BlockUtils;
 
 public class SetEffectIlluminated extends SetEffect { 
@@ -41,8 +42,8 @@ public class SetEffectIlluminated extends SetEffect {
 		// enable/disable
 		if (ArmorSet.getFirstSetItem(player, this) == stack &&
 				!world.isClientSide && BlockArmor.key.isKeyDown(player) && !player.getCooldowns().isOnCooldown(stack.getItem())) {
-			boolean deactivated = !stack.getTag().getBoolean("deactivated");
-			stack.getTag().putBoolean("deactivated", deactivated);
+			boolean deactivated = !ItemData.getBoolean(stack, "deactivated");
+			ItemData.setBoolean(stack, "deactivated", deactivated);
 			player.sendSystemMessage(Component.literal(ChatFormatting.GRAY+""+ChatFormatting.ITALIC+"Illuminated set effect "
 					+ (deactivated ? ChatFormatting.RED+""+ChatFormatting.ITALIC+"disabled" : ChatFormatting.GREEN+""+ChatFormatting.ITALIC+"enabled")));
 			this.setCooldown(player, 10);
@@ -52,7 +53,7 @@ public class SetEffectIlluminated extends SetEffect {
 		if (ArmorSet.getFirstSetItem(player, this) == stack &&
 				!world.isClientSide && world.isEmptyBlock(player.blockPosition().above()) && 
 				world.getBrightness(LightLayer.BLOCK, player.blockPosition().above()) < lightLevel &&
-				!stack.getTag().getBoolean("deactivated")) {
+				!ItemData.getBoolean(stack, "deactivated")) {
 			BlockPos pos = player.blockPosition().above();
 			BlockState state = ModBlocks.MOVING_LIGHT_SOURCE.defaultBlockState().setValue(BlockMovingLightSource.LIGHT_LEVEL, lightLevel);
 			world.setBlockAndUpdate(pos, state);

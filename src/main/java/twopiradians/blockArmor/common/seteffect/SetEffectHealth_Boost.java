@@ -29,8 +29,7 @@ public class SetEffectHealth_Boost extends SetEffect {
 		super();
 		this.healthBoost = healthBoost;
 		this.color = ChatFormatting.RED;
-		this.attributes.put(Attributes.MAX_HEALTH, new AttributeModifier(MAX_HEALTH_UUID, 
-				"Max Health", healthBoost, AttributeModifier.Operation.ADDITION));
+		this.attributes.put(Attributes.MAX_HEALTH, new AttributeModifier(MAX_HEALTH_UUID, healthBoost, AttributeModifier.Operation.ADD_VALUE));
 	}
 	
 	/**Extra objects needed for description*/

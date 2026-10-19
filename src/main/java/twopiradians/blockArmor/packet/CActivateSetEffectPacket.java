@@ -1,10 +1,9 @@
 package twopiradians.blockArmor.packet;
 
 import java.util.UUID;
-import java.util.function.Supplier;
 
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraftforge.event.network.CustomPayloadEvent;
 import twopiradians.blockArmor.client.key.KeyActivateSetEffect;
 
 public class CActivateSetEffectPacket {
@@ -32,9 +31,9 @@ public class CActivateSetEffectPacket {
 
 	public static class Handler  {
 
-		public static void handle(CActivateSetEffectPacket packet, Supplier<NetworkEvent.Context> ctx) {
+		public static void handle(CActivateSetEffectPacket packet, CustomPayloadEvent.Context ctx) {
 			KeyActivateSetEffect.isKeyDown.put(packet.player, packet.isKeyPressed);
-			ctx.get().setPacketHandled(true);
+			
 		}
 	}
 }

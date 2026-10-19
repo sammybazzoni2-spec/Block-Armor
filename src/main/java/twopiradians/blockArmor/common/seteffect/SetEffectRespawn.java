@@ -53,7 +53,7 @@ public class SetEffectRespawn extends SetEffect {
 					}
 					player.moveTo(respawnPos.getX(), respawnPos.getY(), respawnPos.getZ(), 0, 0);
 					player.setRespawnPosition(respawnWorld.dimension(), respawnPos, player.getRespawnAngle(), player.isRespawnForced(), false);
-					player.connection.send(new ClientboundRespawnPacket(player.serverLevel().dimensionTypeId(), player.serverLevel().dimension(), BiomeManager.obfuscateSeed(player.serverLevel().getSeed()), player.gameMode.getGameModeForPlayer(), player.gameMode.getPreviousGameModeForPlayer(), player.serverLevel().isDebug(), player.serverLevel().isFlat(), (byte)3, player.getLastDeathLocation(), player.getPortalCooldown()));
+					player.connection.send(new ClientboundRespawnPacket(player.createCommonSpawnInfo(player.serverLevel()), (byte)3));
 					player.connection.teleport(player.getX(), player.getY(), player.getZ(), player.getYRot(), player.getXRot());
 					player.connection.send(new ClientboundSetDefaultSpawnPositionPacket(respawnWorld.getSharedSpawnPos(), respawnWorld.getSharedSpawnAngle()));
 					player.connection.send(new ClientboundSetExperiencePacket(player.experienceProgress, player.totalExperience, player.experienceLevel));

@@ -72,7 +72,7 @@ public class ModItems {
 
 	private static BlockArmorItem register(ForgeRegistry<Item> registry, BlockArmorItem armor, String itemName) {
 		allArmors.add(armor);
-		registry.register(new ResourceLocation(BlockArmor.MODID, itemName), armor);
+		registry.register(ResourceLocation.fromNamespaceAndPath(BlockArmor.MODID, itemName), armor);
 		return armor;
 	}
 

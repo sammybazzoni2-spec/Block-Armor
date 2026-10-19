@@ -21,6 +21,7 @@ import net.minecraft.client.model.geom.ModelPart.Cube;
 import net.minecraft.client.model.geom.builders.CubeDefinition;
 import net.minecraft.client.model.geom.builders.CubeListBuilder;
 import net.minecraft.core.Direction;
+import net.minecraft.util.Mth;
 import org.joml.Vector3f;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.nbt.ListTag;
@@ -30,6 +31,8 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import twopiradians.blockArmor.utils.ItemData;
+import twopiradians.blockArmor.common.seteffect.SetEffect;
 import twopiradians.blockArmor.common.BlockArmor;
 import twopiradians.blockArmor.common.command.CommandDev;
 import twopiradians.blockArmor.common.item.BlockArmorItem;
@@ -303,8 +306,8 @@ public class ModelBAArmor<T extends LivingEntity> extends HumanoidModel<T> {
 	 * Sets the models various rotation angles then renders the model.
 	 */
 	@Override
-	public void renderToBuffer(PoseStack matrix, VertexConsumer vertex, int lightMapUV, int overlayUV, float ageInTicks,
-			float netHeadYaw, float headPitch, float scale) {
+	public void renderToBuffer(PoseStack matrix, VertexConsumer vertex, int lightMapUV, int overlayUV, int packedColorIn) {
+		float ageInTicks = 0, netHeadYaw = 0, headPitch = 0, scale = 1;
 		if (this.remodelOffset != -1) {
 			this.createModel(slot, remodelOffset,
 					this.head, this.body, this.rightArm, this.leftArm, 
@@ -319,23 +322,16 @@ public class ModelBAArmor<T extends LivingEntity> extends HumanoidModel<T> {
 		//don't render enchant if only enchant is from set effect
 		boolean renderEnchant = false;
 		if (stack != null && stack.isEnchanted() && stack.getItem() instanceof BlockArmorItem) {
-			ListTag enchantNbt = stack.getEnchantmentTags();
-			for (int i=0; i<enchantNbt.size(); ++i)
-				if (!enchantNbt.getCompound(i).getBoolean(BlockArmor.MODID+" enchant")) {
-					renderEnchant = true;
-					break;
-				}
+			String tracked = ItemData.getString(stack, SetEffect.ADDED_ENCHANTS_KEY);
+			int setEnchants = tracked.isEmpty() ? 0 : tracked.split(",").length;
+			renderEnchant = stack.getOrDefault(net.minecraft.core.component.DataComponents.ENCHANTMENTS, 
+					net.minecraft.world.item.enchantment.ItemEnchantments.EMPTY).size() > setEnchants;
 		}
 
 		// use different vertex builder to allow translucency
 		if (stack != null && stack.getItem() instanceof BlockArmorItem) {
 			// get texture location
-			String str = ((BlockArmorItem)stack.getItem()).getArmorTexture(stack, entity, slot, "");
-			ResourceLocation loc = TEXTURES.get(str);
-			if (loc == null) {
-				loc = new ResourceLocation(str);
-				TEXTURES.put(str, loc);
-			}
+			ResourceLocation loc = ((BlockArmorItem)stack.getItem()).getArmorTexture(stack, entity, slot, null, false);
 			// normal render - use translucent vertex
 			vertex = Minecraft.getInstance().renderBuffers().bufferSource().getBuffer(RenderType.entityTranslucent(loc));
 			this.actualRender(matrix, vertex, false, lightMapUV, overlayUV, ageInTicks, netHeadYaw, headPitch, scale,
@@ -408,6 +404,10 @@ public class ModelBAArmor<T extends LivingEntity> extends HumanoidModel<T> {
 			}
 		}
 
+		float a = animationOverlay ? alpha : 1.0f;
+		int packedColor = ((int) (Mth.clamp(a, 0f, 1f) * 255f) << 24) | ((int) (Mth.clamp(red, 0f, 1f) * 255f) << 16) 
+				| ((int) (Mth.clamp(green, 0f, 1f) * 255f) << 8) | (int) (Mth.clamp(blue, 0f, 1f) * 255f);
+
 		matrix.pushPose();
 
 		if (this.young) {
@@ -418,32 +418,32 @@ public class ModelBAArmor<T extends LivingEntity> extends HumanoidModel<T> {
 				matrix.scale(num, num, num);
 			}
 			matrix.translate(0.0D, (double)(16.0f / 16.0F), (double)(0f / 16.0F));
-			this.head.render(matrix, vertex, lightMapUV, overlayUV, red, green, blue, animationOverlay ? alpha : 1.0f);
+			this.head.render(matrix, vertex, lightMapUV, overlayUV, packedColor);
 			matrix.popPose();
 
 			matrix.pushPose();
 			num = 1.0F / 2f;
 			matrix.scale(num, num, num);
 			matrix.translate(0.0D, (double)(24f / 16.0F), 0.0D);
-			body.render(matrix, vertex, lightMapUV, overlayUV, red, green, blue, animationOverlay ? alpha : 1.0f);
-			rightArm.render(matrix, vertex, lightMapUV, overlayUV, red, green, blue, animationOverlay ? alpha : 1.0f);
-			leftArm.render(matrix, vertex, lightMapUV, overlayUV, red, green, blue, animationOverlay ? alpha : 1.0f);
-			waist.render(matrix, vertex, lightMapUV, overlayUV, red, green, blue, animationOverlay ? alpha : 1.0f);
-			rightLeg.render(matrix, vertex, lightMapUV, overlayUV, red, green, blue, animationOverlay ? alpha : 1.0f);
-			leftLeg.render(matrix, vertex, lightMapUV, overlayUV, red, green, blue, animationOverlay ? alpha : 1.0f);
-			rightFoot.render(matrix, vertex, lightMapUV, overlayUV, red, green, blue, animationOverlay ? alpha : 1.0f);
-			leftFoot.render(matrix, vertex, lightMapUV, overlayUV, red, green, blue, animationOverlay ? alpha : 1.0f);
+			body.render(matrix, vertex, lightMapUV, overlayUV, packedColor);
+			rightArm.render(matrix, vertex, lightMapUV, overlayUV, packedColor);
+			leftArm.render(matrix, vertex, lightMapUV, overlayUV, packedColor);
+			waist.render(matrix, vertex, lightMapUV, overlayUV, packedColor);
+			rightLeg.render(matrix, vertex, lightMapUV, overlayUV, packedColor);
+			leftLeg.render(matrix, vertex, lightMapUV, overlayUV, packedColor);
+			rightFoot.render(matrix, vertex, lightMapUV, overlayUV, packedColor);
+			leftFoot.render(matrix, vertex, lightMapUV, overlayUV, packedColor);
 			matrix.popPose();
 		} else {
-			head.render(matrix, vertex, lightMapUV, overlayUV, red, green, blue, animationOverlay ? alpha : 1.0f);
-			body.render(matrix, vertex, lightMapUV, overlayUV, red, green, blue, animationOverlay ? alpha : 1.0f);
-			rightArm.render(matrix, vertex, lightMapUV, overlayUV, red, green, blue, animationOverlay ? alpha : 1.0f);
-			leftArm.render(matrix, vertex, lightMapUV, overlayUV, red, green, blue, animationOverlay ? alpha : 1.0f);
-			waist.render(matrix, vertex, lightMapUV, overlayUV, red, green, blue, animationOverlay ? alpha : 1.0f);
-			rightLeg.render(matrix, vertex, lightMapUV, overlayUV, red, green, blue, animationOverlay ? alpha : 1.0f);
-			leftLeg.render(matrix, vertex, lightMapUV, overlayUV, red, green, blue, animationOverlay ? alpha : 1.0f);
-			rightFoot.render(matrix, vertex, lightMapUV, overlayUV, red, green, blue, animationOverlay ? alpha : 1.0f);
-			leftFoot.render(matrix, vertex, lightMapUV, overlayUV, red, green, blue, animationOverlay ? alpha : 1.0f);
+			head.render(matrix, vertex, lightMapUV, overlayUV, packedColor);
+			body.render(matrix, vertex, lightMapUV, overlayUV, packedColor);
+			rightArm.render(matrix, vertex, lightMapUV, overlayUV, packedColor);
+			leftArm.render(matrix, vertex, lightMapUV, overlayUV, packedColor);
+			waist.render(matrix, vertex, lightMapUV, overlayUV, packedColor);
+			rightLeg.render(matrix, vertex, lightMapUV, overlayUV, packedColor);
+			leftLeg.render(matrix, vertex, lightMapUV, overlayUV, packedColor);
+			rightFoot.render(matrix, vertex, lightMapUV, overlayUV, packedColor);
+			leftFoot.render(matrix, vertex, lightMapUV, overlayUV, packedColor);
 		}
 
 		matrix.popPose();

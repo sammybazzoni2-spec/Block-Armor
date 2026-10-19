@@ -3,7 +3,6 @@ package twopiradians.blockArmor.packet;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.util.Map;
-import java.util.function.Supplier;
 
 import com.google.common.collect.Maps;
 
@@ -15,7 +14,7 @@ import net.minecraft.world.item.ItemCooldowns;
 import net.minecraft.world.item.ItemCooldowns.CooldownInstance;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.fml.util.ObfuscationReflectionHelper;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraftforge.event.network.CustomPayloadEvent;
 
 public class SSyncCooldownsPacket {
 
@@ -75,7 +74,7 @@ public class SSyncCooldownsPacket {
 
 	public static class Handler {
 
-		public static void handle(SSyncCooldownsPacket packet, Supplier<NetworkEvent.Context> ctx) {
+		public static void handle(SSyncCooldownsPacket packet, CustomPayloadEvent.Context ctx) {
 			try {
 				COOLDOWNS_TICKS_FIELD.set(Minecraft.getInstance().player.getCooldowns(), packet.ticks);
 				Map<Item, ItemCooldowns.CooldownInstance> cooldowns = (Map<Item, CooldownInstance>) COOLDOWNS_FIELD.get(Minecraft.getInstance().player.getCooldowns());
@@ -86,7 +85,7 @@ public class SSyncCooldownsPacket {
 			catch (Exception e) {
 				e.printStackTrace();
 			}
-			ctx.get().setPacketHandled(true);
+			
 		}
 
 	}

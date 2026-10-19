@@ -12,7 +12,8 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.item.crafting.SingleRecipeInput;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -31,7 +32,7 @@ import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import net.minecraft.world.phys.Vec3;
 import java.util.function.Supplier;
 import com.google.common.base.Suppliers;
-import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.minecraftforge.common.loot.IGlobalLootModifier;
@@ -42,6 +43,7 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.items.ItemHandlerHelper;
 import twopiradians.blockArmor.common.BlockArmor;
 import twopiradians.blockArmor.common.item.ArmorSet;
+import twopiradians.blockArmor.utils.ItemData;
 
 @Mod.EventBusSubscriber
 public class SetEffectAutoSmelt extends SetEffect {
@@ -58,8 +60,8 @@ public class SetEffectAutoSmelt extends SetEffect {
 
 		if (ArmorSet.getFirstSetItem(player, this) == stack &&
 				!world.isClientSide && BlockArmor.key.isKeyDown(player) && !player.getCooldowns().isOnCooldown(stack.getItem())) {
-			boolean deactivated = !stack.getTag().getBoolean("deactivated");
-			stack.getTag().putBoolean("deactivated", deactivated);
+			boolean deactivated = !ItemData.getBoolean(stack, "deactivated");
+			ItemData.setBoolean(stack, "deactivated", deactivated);
 			player.sendSystemMessage(Component.literal(ChatFormatting.GRAY+""+ChatFormatting.ITALIC+"AutoSmelt set effect "
 					+ (deactivated ? ChatFormatting.RED+""+ChatFormatting.ITALIC+"disabled" : ChatFormatting.GREEN+""+ChatFormatting.ITALIC+"enabled")));
 			this.setCooldown(player, 10);
@@ -88,7 +90,7 @@ public class SetEffectAutoSmelt extends SetEffect {
 
 			// check if disabled
 			ItemStack stack = ArmorSet.getFirstSetItem((LivingEntity) event.getSource().getEntity(), SetEffect.AUTOSMELT);
-			if (!stack.hasTag() || stack.getTag().getBoolean("deactivated"))
+			if (ItemData.getBoolean(stack, "deactivated"))
 				return;
 
 			// try smelting items
@@ -116,8 +118,8 @@ public class SetEffectAutoSmelt extends SetEffect {
 	/**Returns smelted form of item or null if it can't be smelted*/
 	@Nullable
 	private static ItemStack smelt(ItemStack stack, Level world) {
-		return world.getRecipeManager().getRecipeFor(RecipeType.SMELTING, new SimpleContainer(stack), world)
-				.map(r -> r.getResultItem(world.registryAccess()))
+		return world.getRecipeManager().getRecipeFor(RecipeType.SMELTING, new SingleRecipeInput(stack), world)
+				.map(r -> r.value().getResultItem(world.registryAccess()))
 				.filter(itemStack -> !itemStack.isEmpty())
 				.map(itemStack -> ItemHandlerHelper.copyStackWithSize(itemStack, stack.getCount() * itemStack.getCount()))
 				.orElse(null);
@@ -125,7 +127,7 @@ public class SetEffectAutoSmelt extends SetEffect {
 
 	public static class EnchantmentSmeltingModifier extends LootModifier {
 
-		public static final Supplier<Codec<EnchantmentSmeltingModifier>> CODEC = Suppliers.memoize(() -> RecordCodecBuilder.create(inst -> 
+		public static final Supplier<MapCodec<EnchantmentSmeltingModifier>> CODEC = Suppliers.memoize(() -> RecordCodecBuilder.mapCodec(inst -> 
 				codecStart(inst).apply(inst, EnchantmentSmeltingModifier::new)));
 
 		protected EnchantmentSmeltingModifier(LootItemCondition[] conditionsIn) {
@@ -133,7 +135,7 @@ public class SetEffectAutoSmelt extends SetEffect {
 		}
 
 		@Override
-		public Codec<? extends IGlobalLootModifier> codec() {
+		public MapCodec<? extends IGlobalLootModifier> codec() {
 			return CODEC.get();
 		}
 
@@ -147,8 +149,8 @@ public class SetEffectAutoSmelt extends SetEffect {
 				ItemStack tool = context.getParamOrNull(LootContextParams.TOOL);
 
 				if (entity.level().isClientSide || 
-						(tool != null && EnchantmentHelper.getEnchantments(tool).containsKey(Enchantments.SILK_TOUCH)) || 
-						!stack.hasTag() || stack.getTag().getBoolean("deactivated"))
+						(tool != null && EnchantmentHelper.getItemEnchantmentLevel(context.getLevel().registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(Enchantments.SILK_TOUCH), tool) > 0) || 
+						ItemData.getBoolean(stack, "deactivated"))
 					return generatedLoot;
 
 				boolean smelted = false;

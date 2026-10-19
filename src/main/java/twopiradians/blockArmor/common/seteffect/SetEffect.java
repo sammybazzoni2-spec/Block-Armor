@@ -4,17 +4,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.UUID;
 
 import javax.annotation.Nullable;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
 
 import net.minecraft.ChatFormatting;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
@@ -32,7 +31,10 @@ import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.ItemAttributeModifiers;
 import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.entity.EquipmentSlotGroup;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.api.distmarker.Dist;
@@ -49,17 +51,18 @@ import twopiradians.blockArmor.common.BlockArmor;
 import twopiradians.blockArmor.common.config.Config;
 import twopiradians.blockArmor.common.item.ArmorSet;
 import twopiradians.blockArmor.common.item.BlockArmorItem;
+import twopiradians.blockArmor.utils.ItemData;
 import twopiradians.blockArmor.packet.SSyncCooldownsPacket;
 
 @Mod.EventBusSubscriber
 public class SetEffect {
 
-	public static final UUID ATTACK_SPEED_UUID = UUID.fromString("3094e67f-88f1-4d81-a59d-655d4e7e8065");
-	public static final UUID ATTACK_DAMAGE_UUID = UUID.fromString("d7dfa4ea-1cdf-4dd9-8842-883d7448cb00");
-	protected static final UUID MOVEMENT_SPEED_UUID = UUID.fromString("308e48ee-a300-4846-9b56-05e53e35eb8f");
-	protected static final UUID KNOCKBACK_RESISTANCE_UUID = UUID.fromString("c8bb1118-78be-4864-9de3-a718047d28bd");
-	protected static final UUID MAX_HEALTH_UUID = UUID.fromString("0fefa40c-fd5a-4019-a25e-7fffc8dcf621");
-	protected static final UUID LUCK_UUID = UUID.fromString("537fd0e2-78ef-4dd3-affb-959ff059b1bd");
+	public static final ResourceLocation ATTACK_SPEED_UUID = ResourceLocation.fromNamespaceAndPath(BlockArmor.MODID, "attack_speed");
+	public static final ResourceLocation ATTACK_DAMAGE_UUID = ResourceLocation.fromNamespaceAndPath(BlockArmor.MODID, "attack_damage");
+	protected static final ResourceLocation MOVEMENT_SPEED_UUID = ResourceLocation.fromNamespaceAndPath(BlockArmor.MODID, "movement_speed");
+	protected static final ResourceLocation KNOCKBACK_RESISTANCE_UUID = ResourceLocation.fromNamespaceAndPath(BlockArmor.MODID, "knockback_resistance");
+	protected static final ResourceLocation MAX_HEALTH_UUID = ResourceLocation.fromNamespaceAndPath(BlockArmor.MODID, "max_health");
+	protected static final ResourceLocation LUCK_UUID = ResourceLocation.fromNamespaceAndPath(BlockArmor.MODID, "luck");
 
 	public static HashMap<String, SetEffect> nameToSetEffectMap = Maps.newHashMap();
 
@@ -115,7 +118,7 @@ public class SetEffect {
 	/**Potion effects that will be applied in onArmorTick*/
 	protected ArrayList<MobEffectInstance> potionEffects = new ArrayList<MobEffectInstance>();
 	/**Attributes that will be applied in getAttributeModifiers*/
-	protected HashMap<Attribute, AttributeModifier> attributes = Maps.newHashMap();
+	protected HashMap<Holder<Attribute>, AttributeModifier> attributes = Maps.newHashMap();
 	/**EnchantmentData that will be applied in onUpdate*/
 	protected ArrayList<EnchantmentData> enchantments = new ArrayList<EnchantmentData>();
 	/**Name of this effect (class name without SetEffect)*/
@@ -224,7 +227,7 @@ public class SetEffect {
 				highestDur.shrink(1);
 			}
 			else if (highestDur != null)
-				highestDur.hurtAndBreak(1, entity, (e) -> {}); 
+				highestDur.hurtAndBreak(1, entity, ((BlockArmorItem) highestDur.getItem()).getSlot()); 
 		}
 	}
 
@@ -243,7 +246,7 @@ public class SetEffect {
 	@SubscribeEvent
 	public static void onDimensionChange(PlayerEvent.PlayerChangedDimensionEvent event) {
 		if (event.getEntity() instanceof ServerPlayer)
-			BlockArmor.NETWORK.send(PacketDistributor.PLAYER.with(()->(ServerPlayer) event.getEntity()), new SSyncCooldownsPacket(event.getEntity()));
+			BlockArmor.NETWORK.send(new SSyncCooldownsPacket(event.getEntity()), PacketDistributor.PLAYER.with((ServerPlayer) event.getEntity()));
 	}
 
 	/**Only called when player wearing full, enabled set*/
@@ -256,60 +259,46 @@ public class SetEffect {
 		}
 	}
 
-	/**Modified from EnchantmentHelper#getEnchantmentLevel to use loc instead of enchantId*/
-	public static int getEnchantmentLevel(ResourceLocation loc, ItemStack stack) {
-		if (stack.isEmpty())
-			return 0;
-		else {
-			ListTag listnbt = stack.getEnchantmentTags();
+	/**Key of the custom data entry that tracks which enchantments were added by set effects (comma separated registry names)*/
+	public static final String ADDED_ENCHANTS_KEY = BlockArmor.MODID+" enchants";
 
-			for (int i = 0; i < listnbt.size(); ++i) {
-				CompoundTag compoundnbt = listnbt.getCompound(i);
-				ResourceLocation resourcelocation1 = ResourceLocation.tryParse(compoundnbt.getString("id"));
-				if (resourcelocation1 != null && resourcelocation1.equals(loc)) 
-					return Mth.clamp(compoundnbt.getInt("lvl"), 0, 255);
-			}
-
-			return 0;
-		}
+	private static boolean isTracked(String tracked, String id) {
+		for (String str : tracked.split(","))
+			if (str.equals(id))
+				return true;
+		return false;
 	}
 
+	/**Adds/removes set effect enchantments - enchantments added here are tracked in the stack's custom data so they're removed again*/
 	public void onUpdate(ItemStack stack, Level world, Entity entity, int slot, boolean isSelected) {
-		if (!world.isClientSide) {
-			//do enchantments
-			if (!this.enchantments.isEmpty()) {
-				ListTag enchantNbt = stack.getEnchantmentTags();
-				for (EnchantmentData enchant : this.enchantments) {
-					if (((BlockArmorItem)stack.getItem()).getSlot() != enchant.slot)
-						continue;
-					//see if it has enchant already
-					boolean hasEnchant = getEnchantmentLevel(enchant.loc, stack) >= enchant.level;
+		if (world.isClientSide || this.enchantments.isEmpty() || !(stack.getItem() instanceof BlockArmorItem) || !(entity instanceof LivingEntity))
+			return;
+		LivingEntity living = (LivingEntity) entity;
+		EquipmentSlot armorSlot = ((BlockArmorItem) stack.getItem()).getSlot();
+		boolean shouldHave = living.getItemBySlot(armorSlot) == stack && 
+				ArmorSet.getWornSetEffects(living).contains(this) && this.isEnabled();
 
-					//should remove enchantment
-					if (hasEnchant && (!(entity instanceof LivingEntity) || 
-							!ArmorSet.getWornSetEffects((LivingEntity) entity).contains(this) || !this.isEnabled()) ||
-							((LivingEntity) entity).getItemBySlot(((BlockArmorItem)stack.getItem()).getSlot()) != stack) {
-						for (int i=enchantNbt.size()-1; i>=0; i--)
-							if (enchantNbt.getCompound(i).getBoolean(BlockArmor.MODID+" enchant"))
-								enchantNbt.remove(i);
-						stack.addTagElement("Enchantments", enchantNbt);
-					}
-					//should add enchantment
-					else if (!hasEnchant && 
-							((LivingEntity) entity).getItemBySlot(((BlockArmorItem)stack.getItem()).getSlot()) == stack &&
-							ArmorSet.getWornSetEffects((LivingEntity) entity).contains(this) && this.isEnabled()) {
-						CompoundTag nbt = new CompoundTag();
-						nbt.putString("id", enchant.loc.toString());
-						nbt.putShort("lvl", enchant.level);
-						nbt.putBoolean(BlockArmor.MODID+" enchant", true);
-						enchantNbt.add(0, nbt);
-						stack.addTagElement("Enchantments", enchantNbt);
-					}
-				}
-				if (enchantNbt.isEmpty())
-					stack.getTag().remove("Enchantments");
-				else
-					stack.getTag().put("Enchantments", enchantNbt);
+		for (EnchantmentData enchant : this.enchantments) {
+			if (enchant.slot != armorSlot)
+				continue;
+			Holder<Enchantment> holder = world.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(enchant.key);
+			String id = enchant.key.location().toString();
+			String tracked = ItemData.getString(stack, ADDED_ENCHANTS_KEY);
+			boolean isTracked = isTracked(tracked, id);
+
+			//should add enchantment
+			if (shouldHave && !isTracked && EnchantmentHelper.getItemEnchantmentLevel(holder, stack) < enchant.level) {
+				EnchantmentHelper.updateEnchantments(stack, mutable -> mutable.upgrade(holder, enchant.level));
+				ItemData.setString(stack, ADDED_ENCHANTS_KEY, tracked.isEmpty() ? id : tracked+","+id);
+			}
+			//should remove enchantment
+			else if (!shouldHave && isTracked) {
+				EnchantmentHelper.updateEnchantments(stack, mutable -> mutable.removeIf(h -> h.is(enchant.key)));
+				String newTracked = "";
+				for (String str : tracked.split(","))
+					if (!str.equals(id) && !str.isEmpty())
+						newTracked += (newTracked.isEmpty() ? "" : ",") + str;
+				ItemData.setString(stack, ADDED_ENCHANTS_KEY, newTracked);
 			}
 		}
 	}
@@ -326,30 +315,20 @@ public class SetEffect {
 				if (stack == event.getFrom())
 					stack = event.getTo();
 				if (stack != null && stack.getItem() instanceof BlockArmorItem) {
-					if (!stack.hasTag())
-						stack.setTag(new CompoundTag());
-
-					if (effects.containsAll(((BlockArmorItem)stack.getItem()).set.setEffects))
-						stack.getTag().putBoolean("wearingFullSet", true);
-					else
-						stack.getTag().putBoolean("wearingFullSet", false);
+					ItemData.setBoolean(stack, "wearingFullSet", effects.containsAll(((BlockArmorItem)stack.getItem()).set.setEffects));
 				}
 			}
 	}
 
-	/**Handles the attributes when wearing an armor set*/
-	public Multimap<Attribute, AttributeModifier> getAttributeModifiers(Multimap<Attribute, AttributeModifier> map,
-			EquipmentSlot slot, ItemStack stack) {
-
-		if (!stack.hasTag())
-			stack.setTag(new CompoundTag());
-
-		if (stack.getTag().getBoolean("wearingFullSet")) {//FIXME removing piece will reset attributes (not sure how to fix)
-			for (Attribute attribute : this.attributes.keySet())
-				map.put(attribute, this.attributes.get(attribute));
+	/**Handles the attributes when wearing an armor set (modifier ids are made unique per slot, bc they can't be shared between slots)*/
+	public void addAttributeModifiers(ItemAttributeModifiers.Builder builder, EquipmentSlotGroup slot, ItemStack stack) {
+		if (ItemData.getBoolean(stack, "wearingFullSet")) {//FIXME removing piece will reset attributes (not sure how to fix)
+			for (Holder<Attribute> attribute : this.attributes.keySet()) {
+				AttributeModifier modifier = this.attributes.get(attribute);
+				builder.add(attribute, new AttributeModifier(modifier.id().withSuffix("."+slot.getSerializedName()), modifier.amount(), modifier.operation()), 
+						slot);
+			}
 		}
-
-		return map;
 	}
 
 	/**Set effect name and description if shifting*/
@@ -443,15 +422,15 @@ public class SetEffect {
 	}
 
 	/**Used to store data for enchantments easily*/
-	protected static class EnchantmentData {
-		public Enchantment ench;
-		public Short level;
-		public EquipmentSlot slot;
-		public ResourceLocation loc;
 
-		public EnchantmentData(Enchantment ench, Short level, EquipmentSlot slot) {
-			this.ench = ench;
-			this.loc = ForgeRegistries.ENCHANTMENTS.getKey(ench);
+	/**Used to store data for enchantments easily*/
+	protected static class EnchantmentData {
+		public ResourceKey<Enchantment> key;
+		public int level;
+		public EquipmentSlot slot;
+
+		public EnchantmentData(ResourceKey<Enchantment> key, int level, EquipmentSlot slot) {
+			this.key = key;
 			this.level = level;
 			this.slot = slot;
 		}
