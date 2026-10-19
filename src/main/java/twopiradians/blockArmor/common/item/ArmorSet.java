@@ -1,12 +1,15 @@
 package twopiradians.blockArmor.common.item;
 
+import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.client.model.data.ModelData;
+import net.minecraft.util.RandomSource;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Random;
 import java.util.TreeSet;
 import java.util.UUID;
 
@@ -27,8 +30,6 @@ import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.Tuple;
@@ -391,7 +392,7 @@ public class ArmorSet {
 		this.block = ((BlockItem) item).getBlock();
 		this.registryName = ArmorSet.getItemRegistryName(this.item);
 		try {
-			ResourceLocation loc = this.item.getRegistryName();
+			ResourceLocation loc = ForgeRegistries.ITEMS.getKey(this.item);
 			this.modid = loc.getNamespace().toLowerCase();
 			if (!this.modid.equals("minecraft"))
 				isFromModdedBlock = true;
@@ -538,13 +539,13 @@ public class ArmorSet {
 		if (item instanceof BlockArmorItem)
 			item = ((BlockArmorItem)item).set.item;
 
-		return new TranslatableComponent(item.getDescriptionId()).getString();
+		return Component.translatable(item.getDescriptionId()).getString();
 	}
 
 	/**Used to uniformly create registry name*/
 	public static String getItemRegistryName(Item item) {
 		try {
-			String registryName = item.getRegistryName().getPath().toLowerCase().replace(" ", "_");
+			String registryName = ForgeRegistries.ITEMS.getKey(item).getPath().toLowerCase().replace(" ", "_");
 			return registryName;
 		} 
 		catch (Exception e) {
@@ -569,18 +570,18 @@ public class ArmorSet {
 		if (slot != null)
 			switch (slot) {
 			case HEAD:
-				return new TranslatableComponent("item.blockarmor.helmet", name);
+				return Component.translatable("item.blockarmor.helmet", name);
 			case CHEST:
-				return new TranslatableComponent("item.blockarmor.chestplate", name);
+				return Component.translatable("item.blockarmor.chestplate", name);
 			case LEGS:
-				return new TranslatableComponent("item.blockarmor.leggings", name);
+				return Component.translatable("item.blockarmor.leggings", name);
 			case FEET:
-				return new TranslatableComponent("item.blockarmor.boots", name);
+				return Component.translatable("item.blockarmor.boots", name);
 			default:
 				break;
 			}
 
-		return new TextComponent(name);
+		return Component.literal(name);
 	}
 
 	/**Returns first piece of armor of the entity's worn set, or null*/
@@ -645,7 +646,7 @@ public class ArmorSet {
 			// manually added blocks (only vanilla cuz we're overriding the textures)
 			if ((block instanceof ShulkerBoxBlock ||
 					block instanceof BedBlock) && 
-					block.getRegistryName().getNamespace().equals("minecraft")) {
+					ForgeRegistries.BLOCKS.getKey(block).getNamespace().equals("minecraft")) {
 				//BlockArmor.LOGGER.debug("Valid "+itemIn.toString()+": manual");
 				return true;
 			}
@@ -655,8 +656,8 @@ public class ArmorSet {
 					return true;
 				}
 			String displayName = getNormalDisplayName(itemIn);
-			String registryName = item.getRegistryName().getPath();
-			String modid = item.getRegistryName().getNamespace();
+			String registryName = ForgeRegistries.ITEMS.getKey(item).getPath();
+			String modid = ForgeRegistries.ITEMS.getKey(item).getNamespace();
 			// bad modded item, ore/ingot, or unnamed
 			if (modid.contains("one_point_twelve_concrete") ||
 					modid.contains("railcraft") ||
@@ -689,7 +690,7 @@ public class ArmorSet {
 				return false;
 			}
 			// bad modded items
-			registryName = block.getRegistryName().toString();
+			registryName = ForgeRegistries.BLOCKS.getKey(block).toString();
 			if (registryName.equalsIgnoreCase("evilcraft:darkBlock") || 
 					registryName.equalsIgnoreCase("evilcraft:obscuredGlass") ||
 					registryName.equalsIgnoreCase("evilcraft:hardenedBlood") ||
@@ -811,11 +812,11 @@ public class ArmorSet {
 		try {
 			BakedModel model = Minecraft.getInstance().getBlockRenderer().getBlockModel(state);
 
-			Random rand = new Random();
+			RandomSource rand = RandomSource.create();
 			//getting quads may throw exception if a mod's modeler doesn't obey @Nullable
-			list.addAll(model.getQuads(state, null, rand));
+			list.addAll(model.getQuads(state, null, rand, ModelData.EMPTY, null));
 			for (Direction facing : Direction.values()) 
-				list.addAll(model.getQuads(state, facing, rand));
+				list.addAll(model.getQuads(state, facing, rand, ModelData.EMPTY, null));
 
 			for (BakedQuad quad : list) {
 				TextureAtlasSprite sprite = quad.getSprite();
@@ -859,7 +860,8 @@ public class ArmorSet {
 				ResourceLocation longLoc = TEXTURE_OVERRIDES.get(block).overrides.get(slot).longLoc;
 				try {
 					// look for override texture
-					Minecraft.getInstance().getResourceManager().getResource(longLoc); //does texture exist?
+					if (Minecraft.getInstance().getResourceManager().getResource(longLoc).isEmpty()) //does texture exist?
+						throw new FileNotFoundException(longLoc.toString());
 					TextureAtlasSprite sprite = Minecraft.getInstance().getModelManager().getAtlas(TextureAtlas.LOCATION_BLOCKS).getSprite(shortLoc);
 					this.textureInfo.put(slot, new TextureInfo(sprite, TEXTURE_OVERRIDES.get(block).overrides.get(slot).color, null));
 					//BlockArmor.LOGGER.info("Override texture for "+this.stack.getDisplayName().getString()+" "+slot.getName()+" found at: "+longLoc);
@@ -892,11 +894,11 @@ public class ArmorSet {
 	/**Call onStop for set effects on logout - only called serverside in SSP*/
 	@SubscribeEvent
 	public static void onEvent(PlayerEvent.PlayerLoggedOutEvent event) {
-		HashMap<UUID, HashSet<SetEffect>> playerSetEffects = getPlayerSetEffects(event.getPlayer().level.isClientSide);
-		if (playerSetEffects.containsKey(event.getPlayer().getUUID())) {
-			for (SetEffect effect : playerSetEffects.get(event.getPlayer().getUUID()))
-				effect.onStop(event.getPlayer());
-			playerSetEffects.remove(event.getPlayer().getUUID());
+		HashMap<UUID, HashSet<SetEffect>> playerSetEffects = getPlayerSetEffects(event.getEntity().level.isClientSide);
+		if (playerSetEffects.containsKey(event.getEntity().getUUID())) {
+			for (SetEffect effect : playerSetEffects.get(event.getEntity().getUUID()))
+				effect.onStop(event.getEntity());
+			playerSetEffects.remove(event.getEntity().getUUID());
 		}
 	}
 

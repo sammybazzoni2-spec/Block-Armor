@@ -1,5 +1,6 @@
 package twopiradians.blockArmor.client.gui;
 
+import net.minecraft.network.chat.CommonComponents;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -28,8 +29,6 @@ import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
@@ -76,16 +75,16 @@ public class GuiArmorDisplay extends Screen {
 
 	private ArrayList<BlockArmorItem> armors;
 	/** List of all unique set effect tooltips and blocks they are valid for */
-	private Map<TextComponent, ArrayList<ItemStack>> tooltips;
+	private Map<Component, ArrayList<ItemStack>> tooltips;
 
 	public GuiArmorDisplay() {
-		super(new TextComponent("Armor Display"));
+		super(Component.literal("Armor Display"));
 		guiPlayer = new EntityGuiPlayer(Minecraft.getInstance().level, Minecraft.getInstance().player.getGameProfile(), Minecraft.getInstance().player);
 		//initialize armors with all armor that has a set effect
 		armors = new ArrayList<BlockArmorItem>();
-		tooltips = new TreeMap<TextComponent, ArrayList<ItemStack>>(new Comparator<TextComponent>() {
+		tooltips = new TreeMap<Component, ArrayList<ItemStack>>(new Comparator<Component>() {
 			@Override
-			public int compare(TextComponent arg0, TextComponent arg1) {
+			public int compare(Component arg0, Component arg1) {
 				return ChatFormatting.stripFormatting(arg0.getString()).compareTo(
 						ChatFormatting.stripFormatting(arg1.getString()));
 			}
@@ -116,7 +115,7 @@ public class GuiArmorDisplay extends Screen {
 							stacks.add(0, set.getStack());
 							if (tooltips.containsKey(tooltip)) 
 								stacks.addAll(0, tooltips.get(tooltip));
-							tooltips.put((TextComponent) tooltip, stacks);
+							tooltips.put((Component) tooltip, stacks);
 						}
 					}						
 			}
@@ -154,7 +153,7 @@ public class GuiArmorDisplay extends Screen {
 			if (GUI_MODE == 3 || GUI_MODE == 4 || GUI_MODE == 5) {
 				int index = 0;
 				for (int i=0; i<tooltips.size(); i++) {
-					int numStacks = tooltips.get(tooltips.keySet().toArray(new TextComponent[0])[i]).size();
+					int numStacks = tooltips.get(tooltips.keySet().toArray(new Component[0])[i]).size();
 					int itemsPerRow = numStacks > 10 ? numStacks/2+1 : numStacks;
 					float x = 0;
 					float y = 0;
@@ -180,7 +179,7 @@ public class GuiArmorDisplay extends Screen {
 						y += 10;
 					index += GUI_PAGE*20;
 					List<String> tooltip = new ArrayList<String>();
-					tooltip.add(tooltips.keySet().toArray(new TextComponent[0])[i].getString());
+					tooltip.add(tooltips.keySet().toArray(new Component[0])[i].getString());
 					if (numStacks > itemsPerRow)
 						index += 2;
 					else
@@ -222,7 +221,7 @@ public class GuiArmorDisplay extends Screen {
 							length = this.font.width(string);
 					// tooltips
 					if (GUI_MODE == 3 || GUI_MODE == 5)
-						this.renderComponentTooltip(matrix, tooltip.stream().map(str -> new TextComponent(str)).collect(Collectors.toList()), (int)x-length/2, (int)y, font);
+						this.renderComponentTooltip(matrix, tooltip.stream().map(str -> Component.literal(str)).collect(Collectors.toList()), (int)x-length/2, (int)y, font);
 					// items
 					if (GUI_MODE != 3) {
 						Lighting.setupFor3DItems();
@@ -233,7 +232,7 @@ public class GuiArmorDisplay extends Screen {
 							int k = j > itemsPerRow ? (rowSize == 0 ? 0 : j % (rowSize+0)) + 0 : j;
 							spaceBetween = 26 - (rowSize-1)/5;
 							this.itemRenderer.blitOffset = 500;
-							ItemStack stack = tooltips.get(tooltips.keySet().toArray(new TextComponent[0])[i]).get(j);
+							ItemStack stack = tooltips.get(tooltips.keySet().toArray(new Component[0])[i]).get(j);
 							if (j > itemsPerRow) {
 								this.renderGuiItem(stack,
 										(int) (x+2+(k*spaceBetween - (rowSize-1)*spaceBetween/2)), (int)y+32, scale);
@@ -313,7 +312,7 @@ public class GuiArmorDisplay extends Screen {
 						matrix.scale(scale, scale, scale);
 						int length = 0;
 						ArrayList<Component> tooltip = new ArrayList<Component>();
-						tooltip.add(new TextComponent(ChatFormatting.AQUA+""+ChatFormatting.UNDERLINE+stack.getHoverName().getString().replace("Helmet", "Armor")));
+						tooltip.add(Component.literal(ChatFormatting.AQUA+""+ChatFormatting.UNDERLINE+stack.getHoverName().getString().replace("Helmet", "Armor")));
 						//armors.get(index).addFullSetEffectTooltip(tooltip);
 						this.addStatTooltips(tooltip, new ItemStack[] {helmet, chestplate, leggings, boots});
 						for (Component string : tooltip) {
@@ -353,7 +352,7 @@ public class GuiArmorDisplay extends Screen {
 					int l = nbttaglist.getCompound(j).getShort("lvl");
 
 					if (Enchantment.byId(k) != null)
-						tooltip.add(new TextComponent(ChatFormatting.GRAY+Enchantment.byId(k).getFullname(l).getString()));
+						tooltip.add(Component.literal(ChatFormatting.GRAY+Enchantment.byId(k).getFullname(l).getString()));
 				}
 		}
 
@@ -362,8 +361,8 @@ public class GuiArmorDisplay extends Screen {
 			for(EquipmentSlot equipmentslottype : EquipmentSlot.values()) {
 				Multimap<Attribute, AttributeModifier> multimap = stack.getAttributeModifiers(equipmentslottype);
 				if (!multimap.isEmpty()) {
-					tooltip.add(TextComponent.EMPTY);
-					tooltip.add((new TranslatableComponent("item.modifiers." + equipmentslottype.getName())).withStyle(ChatFormatting.GRAY));
+					tooltip.add(CommonComponents.EMPTY);
+					tooltip.add((Component.translatable("item.modifiers." + equipmentslottype.getName())).withStyle(ChatFormatting.GRAY));
 
 					for(Entry<Attribute, AttributeModifier> entry : multimap.entries()) {
 						AttributeModifier attributemodifier = entry.getValue();
@@ -392,12 +391,12 @@ public class GuiArmorDisplay extends Screen {
 						}
 
 						if (flag) {
-							tooltip.add((new TextComponent(" ")).append(new TranslatableComponent("attribute.modifier.equals." + attributemodifier.getOperation().toValue(), ItemStack.ATTRIBUTE_MODIFIER_FORMAT.format(d1), new TranslatableComponent(entry.getKey().getDescriptionId()))).withStyle(ChatFormatting.DARK_GREEN));
+							tooltip.add((Component.literal(" ")).append(Component.translatable("attribute.modifier.equals." + attributemodifier.getOperation().toValue(), ItemStack.ATTRIBUTE_MODIFIER_FORMAT.format(d1), Component.translatable(entry.getKey().getDescriptionId()))).withStyle(ChatFormatting.DARK_GREEN));
 						} else if (d0 > 0.0D) {
-							tooltip.add((new TranslatableComponent("attribute.modifier.plus." + attributemodifier.getOperation().toValue(), ItemStack.ATTRIBUTE_MODIFIER_FORMAT.format(d1), new TranslatableComponent(entry.getKey().getDescriptionId()))).withStyle(ChatFormatting.BLUE));
+							tooltip.add((Component.translatable("attribute.modifier.plus." + attributemodifier.getOperation().toValue(), ItemStack.ATTRIBUTE_MODIFIER_FORMAT.format(d1), Component.translatable(entry.getKey().getDescriptionId()))).withStyle(ChatFormatting.BLUE));
 						} else if (d0 < 0.0D) {
 							d1 = d1 * -1.0D;
-							tooltip.add((new TranslatableComponent("attribute.modifier.take." + attributemodifier.getOperation().toValue(), ItemStack.ATTRIBUTE_MODIFIER_FORMAT.format(d1), new TranslatableComponent(entry.getKey().getDescriptionId()))).withStyle(ChatFormatting.RED));
+							tooltip.add((Component.translatable("attribute.modifier.take." + attributemodifier.getOperation().toValue(), ItemStack.ATTRIBUTE_MODIFIER_FORMAT.format(d1), Component.translatable(entry.getKey().getDescriptionId()))).withStyle(ChatFormatting.RED));
 						}
 					}
 				}

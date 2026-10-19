@@ -62,7 +62,7 @@ public class SetEffectSlimey extends SetEffect {
 
 	@SubscribeEvent
 	public static void onEvent(LivingFallEvent event) {
-		if (ArmorSet.hasSetEffect(event.getEntityLiving(), SetEffect.SLIMEY)) {
+		if (ArmorSet.hasSetEffect(event.getEntity(), SetEffect.SLIMEY)) {
 			if (!(event.getEntity() instanceof Player))
 				return;
 

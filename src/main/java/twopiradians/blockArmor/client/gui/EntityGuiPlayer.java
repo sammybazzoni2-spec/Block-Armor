@@ -17,7 +17,7 @@ public class EntityGuiPlayer extends AbstractClientPlayer {
 	private static PlayerTeam team;
 
 	public EntityGuiPlayer(ClientLevel worldIn, GameProfile playerProfile, AbstractClientPlayer player) {
-		super(worldIn, playerProfile);
+		super(worldIn, playerProfile, null);
 		this.player = player;
 		
 		if (team == null) {

@@ -17,8 +17,6 @@ import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
@@ -37,7 +35,7 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.client.IItemRenderProperties;
+import net.minecraftforge.client.extensions.common.IClientItemExtensions;
 import twopiradians.blockArmor.client.ClientProxy;
 import twopiradians.blockArmor.client.model.ModelBAArmor;
 import twopiradians.blockArmor.common.command.CommandDev;
@@ -78,11 +76,11 @@ public class BlockArmorItem extends ArmorItem {
 
 	@Override 
 	@OnlyIn(Dist.CLIENT)
-	public void initializeClient(Consumer<IItemRenderProperties> consumer) {
-		consumer.accept(new IItemRenderProperties() {
+	public void initializeClient(Consumer<IClientItemExtensions> consumer) {
+		consumer.accept(new IClientItemExtensions() {
 			@Override
 			@OnlyIn(Dist.CLIENT)
-			public <A extends HumanoidModel<?>> A getArmorModel(LivingEntity entity, ItemStack stack, EquipmentSlot armorSlot, A _default) {
+			public HumanoidModel<?> getHumanoidArmorModel(LivingEntity entity, ItemStack stack, EquipmentSlot armorSlot, HumanoidModel<?> _default) {
 				BlockArmorItem item = (BlockArmorItem) stack.getItem();
 				TextureInfo info = item.set.getTextureInfo(item.slot);
 				TextureAtlasSprite sprite = info.sprite;
@@ -93,7 +91,7 @@ public class BlockArmorItem extends ArmorItem {
 				ModelBAArmor model = (ModelBAArmor) ClientProxy.getBlockArmorModel(entity, height, width, currentFrame, nextFrame, slot);
 				model.color = info.color;
 				model.alpha = info.getAlpha();
-				return (A) model;
+				return model;
 			}
 		});
 	}
@@ -108,7 +106,7 @@ public class BlockArmorItem extends ArmorItem {
 	}
 
 	@Override
-	protected boolean allowdedIn(CreativeModeTab group) {
+	protected boolean allowedIn(CreativeModeTab group) {
 		return set.isEnabled() && group != null && (group == CreativeModeTab.TAB_SEARCH || group == this.group);
 	}
 
@@ -162,13 +160,13 @@ public class BlockArmorItem extends ArmorItem {
 	public void appendHoverText(ItemStack stack, @Nullable Level worldIn, List<Component> tooltip,
 			TooltipFlag flagIn) {
 		if (stack.hasTag() && stack.getTag().contains("devSpawned"))
-			tooltip.add(new TextComponent(ChatFormatting.DARK_PURPLE + "" + ChatFormatting.BOLD + "Dev Spawned"));
+			tooltip.add(Component.literal(ChatFormatting.DARK_PURPLE + "" + ChatFormatting.BOLD + "Dev Spawned"));
 
 		if (!set.setEffects.isEmpty() && set.setEffects.get(0).isEnabled()) {
 			// add header if shifting
 			if (Screen.hasShiftDown())
-				tooltip.add(new TranslatableComponent("item.blockarmor.tooltip.setEffects", 
-						new TranslatableComponent("item.blockarmor.tooltip.setEffectsRequire"+(Config.piecesForSet == 4 ? "" : "+"), Config.piecesForSet)
+				tooltip.add(Component.translatable("item.blockarmor.tooltip.setEffects", 
+						Component.translatable("item.blockarmor.tooltip.setEffectsRequire"+(Config.piecesForSet == 4 ? "" : "+"), Config.piecesForSet)
 						.withStyle(ChatFormatting.ITALIC), Config.piecesForSet)
 						.withStyle(ChatFormatting.GOLD));
 

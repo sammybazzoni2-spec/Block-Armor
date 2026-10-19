@@ -20,12 +20,12 @@ public class SetEffectSoft_Fall extends SetEffect {
 	/**Prevent fall damage*/
 	@SubscribeEvent
 	public static void onEvent(LivingFallEvent event) {
-		if (ArmorSet.getWornSetEffects(event.getEntityLiving()).contains(SetEffect.SOFT_FALL)) {
-			if (!event.getEntityLiving().level.isClientSide && event.getDistance() > 2)
-				event.getEntityLiving().level.playSound(null, event.getEntityLiving().blockPosition(), 
+		if (ArmorSet.getWornSetEffects(event.getEntity()).contains(SetEffect.SOFT_FALL)) {
+			if (!event.getEntity().level.isClientSide && event.getDistance() > 2)
+				event.getEntity().level.playSound(null, event.getEntity().blockPosition(), 
 						SoundEvents.WOOL_FALL, SoundSource.PLAYERS, 
 						Math.min(event.getDistance()/20f, 1), 
-						event.getEntityLiving().level.random.nextFloat()+0.8f);
+						event.getEntity().level.random.nextFloat()+0.8f);
 			event.setDistance(0);
 			event.setDamageMultiplier(0);
 		}

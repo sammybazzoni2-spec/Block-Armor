@@ -8,7 +8,6 @@ import com.mojang.math.Vector3d;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.protocol.game.ClientboundCustomSoundPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -90,7 +89,7 @@ public class SetEffectEnder extends SetEffect {
 				}
 			// no valid pos found
 			if (player instanceof ServerPlayer) {
-				((ServerPlayer)player).connection.send(new ClientboundCustomSoundPacket(SoundEvents.NOTE_BLOCK_BASS.getRegistryName(), SoundSource.PLAYERS, player.position(), 1.0F, world.random.nextFloat() + 0.5F));	
+				((ServerPlayer)player).playNotifySound(SoundEvents.NOTE_BLOCK_BASS, SoundSource.PLAYERS, 1.0F, world.random.nextFloat() + 0.5F);	
 				this.setCooldown(player, 10);
 			}
 		}

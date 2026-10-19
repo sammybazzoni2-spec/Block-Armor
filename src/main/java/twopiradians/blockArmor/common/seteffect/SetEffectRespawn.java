@@ -29,8 +29,8 @@ public class SetEffectRespawn extends SetEffect {
 	@SubscribeEvent
 	public static void onEvent(LivingDeathEvent event) {
 		try {
-			if (event.getEntityLiving() instanceof ServerPlayer) {
-				ServerPlayer player = (ServerPlayer) event.getEntityLiving();
+			if (event.getEntity() instanceof ServerPlayer) {
+				ServerPlayer player = (ServerPlayer) event.getEntity();
 				if (!player.level.isClientSide && 
 						ArmorSet.hasSetEffect(player, SetEffect.RESPAWN) && 
 						!player.getCooldowns().isOnCooldown(ArmorSet.getFirstSetItem(player, SetEffect.RESPAWN).getItem())) {

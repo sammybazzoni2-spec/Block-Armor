@@ -1,7 +1,8 @@
 package twopiradians.blockArmor.common.seteffect;
 
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Component;
 import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.player.Player;
@@ -29,8 +30,8 @@ public class SetEffectTime_Control extends SetEffect {
 	}
 	
 	@Override
-	public TranslatableComponent getDescription() {
-		return new TranslatableComponent("setEffect."+this.name.replaceAll(" ", "_").toLowerCase()+"."+type.name.toLowerCase()+".description", this.getDescriptionObjects());
+	public MutableComponent getDescription() {
+		return Component.translatable("setEffect."+this.name.replaceAll(" ", "_").toLowerCase()+"."+type.name.toLowerCase()+".description", this.getDescriptionObjects());
 	}
 
 	/**Write this effect to string for config (variables need to be included)*/

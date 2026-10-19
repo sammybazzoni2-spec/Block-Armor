@@ -1,5 +1,6 @@
 package twopiradians.blockArmor.common.seteffect;
 
+import net.minecraftforge.registries.ForgeRegistries;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -17,8 +18,6 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -156,8 +155,8 @@ public class SetEffect {
 	/**Checks if block's registry name contains any of the provided strings (with or without capitalized first letter)*/
 	public static boolean registryNameContains(Block block, String... strings) {
 		try { // TODO only work for " word ", "<eof>word ", " word<eof>", "<eof>word<eof>" (NOT "asdfWord")
-			String registryName = block.getRegistryName().getPath();
-			String displayName = new ItemStack(block, 1).getHoverName().getContents();
+			String registryName = ForgeRegistries.BLOCKS.getKey(block).getPath();
+			String displayName = new ItemStack(block, 1).getHoverName().getString();
 			for (String string : strings) {
 				if (registryName.contains(string) || registryName.contains(string.substring(0, 1).toUpperCase()+string.substring(1)) ||
 						displayName.contains(string.substring(0, 1).toUpperCase()+string.substring(1)))
@@ -243,8 +242,8 @@ public class SetEffect {
 	/**Send cooldowns to client bc it forgets about them when changing dimensions*/
 	@SubscribeEvent
 	public static void onDimensionChange(PlayerEvent.PlayerChangedDimensionEvent event) {
-		if (event.getPlayer() instanceof ServerPlayer)
-			BlockArmor.NETWORK.send(PacketDistributor.PLAYER.with(()->(ServerPlayer) event.getPlayer()), new SSyncCooldownsPacket(event.getPlayer()));
+		if (event.getEntity() instanceof ServerPlayer)
+			BlockArmor.NETWORK.send(PacketDistributor.PLAYER.with(()->(ServerPlayer) event.getEntity()), new SSyncCooldownsPacket(event.getEntity()));
 	}
 
 	/**Only called when player wearing full, enabled set*/
@@ -320,10 +319,10 @@ public class SetEffect {
 	 * the event.to, event.from, and event.slot aren't always accurate*/
 	@SubscribeEvent
 	public static void onEquipmentChange(LivingEquipmentChangeEvent event) {
-		HashSet<SetEffect> effects = ArmorSet.getWornSetEffects(event.getEntityLiving());
+		HashSet<SetEffect> effects = ArmorSet.getWornSetEffects(event.getEntity());
 		for (EquipmentSlot slot : EquipmentSlot.values())
 			if (slot.getType() == Type.ARMOR) {
-				ItemStack stack = event.getEntityLiving().getItemBySlot(slot);
+				ItemStack stack = event.getEntity().getItemBySlot(slot);
 				if (stack == event.getFrom())
 					stack = event.getTo();
 				if (stack != null && stack.getItem() instanceof BlockArmorItem) {
@@ -356,9 +355,9 @@ public class SetEffect {
 	/**Set effect name and description if shifting*/
 	@OnlyIn(Dist.CLIENT)
 	public List<Component> addInformation(ItemStack stack, boolean isShiftDown, Player player, List<Component> tooltip, TooltipFlag flagIn) {
-		MutableComponent comp = new TextComponent("");
+		MutableComponent comp = Component.literal("");
 		// set effect name
-		MutableComponent name = new TranslatableComponent("setEffect."+this.name.replaceAll(" ", "_").toLowerCase()+".name");
+		MutableComponent name = Component.translatable("setEffect."+this.name.replaceAll(" ", "_").toLowerCase()+".name");
 		// bold if active
 		if (player instanceof EntityGuiPlayer || (ArmorSet.getWornSetEffects(player).contains(this) && 
 				player.getItemBySlot(((BlockArmorItem)stack.getItem()).getSlot()) == stack))
@@ -383,8 +382,8 @@ public class SetEffect {
 		return tooltip;
 	}
 	
-	public TranslatableComponent getDescription() {
-		return new TranslatableComponent("setEffect."+this.name.replaceAll(" ", "_").toLowerCase()+".description", this.getDescriptionObjects());
+	public MutableComponent getDescription() {
+		return Component.translatable("setEffect."+this.name.replaceAll(" ", "_").toLowerCase()+".description", this.getDescriptionObjects());
 	}
 
 	/**Extra objects needed for description*/
@@ -452,7 +451,7 @@ public class SetEffect {
 
 		public EnchantmentData(Enchantment ench, Short level, EquipmentSlot slot) {
 			this.ench = ench;
-			this.loc = ench.getRegistryName();
+			this.loc = ForgeRegistries.ENCHANTMENTS.getKey(ench);
 			this.level = level;
 			this.slot = slot;
 		}

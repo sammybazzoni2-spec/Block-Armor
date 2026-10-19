@@ -24,7 +24,7 @@ public class SetEffectFiery extends SetEffect {
 		if (SetEffect.FIERY.isEnabled() && event.getSource().getEntity() instanceof LivingEntity 
 				&& !event.getSource().getEntity().level.isClientSide) {
 			LivingEntity attacker = (LivingEntity) event.getSource().getEntity();
-			LivingEntity attacked = event.getEntityLiving();
+			LivingEntity attacked = event.getEntity();
 
 			//Lights the entity that attacks the wearer of the armor
 			if (ArmorSet.hasSetEffect(attacked, SetEffect.FIERY) && !attacker.isInWater())	{

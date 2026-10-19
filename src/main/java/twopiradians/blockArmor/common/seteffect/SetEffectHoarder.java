@@ -1,5 +1,6 @@
 package twopiradians.blockArmor.common.seteffect;
 
+import net.minecraft.resources.ResourceLocation;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,9 +17,6 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
-import net.minecraft.network.protocol.game.ClientboundCustomSoundPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
@@ -45,7 +43,8 @@ import net.minecraft.world.level.block.ShulkerBoxBlock;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.extensions.IForgeMenuType;
-import net.minecraftforge.event.RegistryEvent;
+import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.registries.RegisterEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -94,7 +93,7 @@ public class SetEffectHoarder extends SetEffect {
 				ArmorSet.getFirstSetItem(player, this) == stack &&
 				!player.getCooldowns().isOnCooldown(stack.getItem())) {
 			if (player instanceof ServerPlayer)
-				((ServerPlayer)player).connection.send(new ClientboundCustomSoundPacket(SetEffect.HOARDER.getSoundEvent(player, true).getRegistryName(), SoundSource.PLAYERS, player.position(), 0.6f, 1));	
+				((ServerPlayer)player).playNotifySound(SetEffect.HOARDER.getSoundEvent(player, true), SoundSource.PLAYERS, 0.6f, 1);	
 			player.openMenu(new HoarderProvider());
 			this.damageArmor(player, 1, false); 
 			this.setCooldown(player, 20);
@@ -124,14 +123,14 @@ public class SetEffectHoarder extends SetEffect {
 					nonEmptyItems.add(storedItem);
 			for (int i=0; i<4 && i<nonEmptyItems.size(); ++i) {
 				ItemStack storedItem = nonEmptyItems.get(i);
-				MutableComponent comp = new TextComponent("  - ")
+				MutableComponent comp = Component.literal("  - ")
 						.append(storedItem.getHoverName().copy().withStyle(this.color));
 				comp.append(" x").append(String.valueOf(storedItem.getCount()));
 				tooltip.add(comp);
 			}
 			if (nonEmptyItems.size() > 4)
-				tooltip.add((new TextComponent("  ")
-						.append(new TranslatableComponent("container.shulkerBox.more", nonEmptyItems.size()-4)).withStyle(ChatFormatting.ITALIC, this.color)));
+				tooltip.add((Component.literal("  ")
+						.append(Component.translatable("container.shulkerBox.more", nonEmptyItems.size()-4)).withStyle(ChatFormatting.ITALIC, this.color)));
 		}
 
 		return tooltip;
@@ -267,7 +266,7 @@ public class SetEffectHoarder extends SetEffect {
 
 		@Override
 		public Component getDisplayName() {
-			return new TextComponent("Hoarder Storage");
+			return Component.literal("Hoarder Storage");
 		}
 	}
 
@@ -328,7 +327,7 @@ public class SetEffectHoarder extends SetEffect {
 			super.removed(player);
 
 			if (!player.level.isClientSide && player instanceof ServerPlayer)
-				((ServerPlayer)player).connection.send(new ClientboundCustomSoundPacket(SetEffect.HOARDER.getSoundEvent(player, false).getRegistryName(), SoundSource.PLAYERS, player.position(), 0.6f, 1));	
+				((ServerPlayer)player).playNotifySound(SetEffect.HOARDER.getSoundEvent(player, false), SoundSource.PLAYERS, 0.6f, 1);	
 		}
 
 		@Override
@@ -360,25 +359,21 @@ public class SetEffectHoarder extends SetEffect {
 	public static class RegistrationHandler {
 
 		@SubscribeEvent
-		public static void registerContainers(final RegistryEvent.Register<MenuType<?>> event) {
-			containerType_9x1 = IForgeMenuType.create(HoarderContainer::createContainerClientSide);
-			containerType_9x1.setRegistryName("hoarder_container_9x1");
-			event.getRegistry().register(containerType_9x1);
-			containerType_9x2 = IForgeMenuType.create(HoarderContainer::createContainerClientSide);
-			containerType_9x2.setRegistryName("hoarder_container_9x2");
-			event.getRegistry().register(containerType_9x2);
-			containerType_9x3 = IForgeMenuType.create(HoarderContainer::createContainerClientSide);
-			containerType_9x3.setRegistryName("hoarder_container_9x3");
-			event.getRegistry().register(containerType_9x3);
-			containerType_9x4 = IForgeMenuType.create(HoarderContainer::createContainerClientSide);
-			containerType_9x4.setRegistryName("hoarder_container_9x4");
-			event.getRegistry().register(containerType_9x4);
-			containerType_9x5 = IForgeMenuType.create(HoarderContainer::createContainerClientSide);
-			containerType_9x5.setRegistryName("hoarder_container_9x5");
-			event.getRegistry().register(containerType_9x5);
-			containerType_9x6 = IForgeMenuType.create(HoarderContainer::createContainerClientSide);
-			containerType_9x6.setRegistryName("hoarder_container_9x6");
-			event.getRegistry().register(containerType_9x6);
+		public static void registerContainers(final RegisterEvent event) {
+			event.register(ForgeRegistries.Keys.MENU_TYPES, helper -> {
+				containerType_9x1 = IForgeMenuType.create(HoarderContainer::createContainerClientSide);
+				helper.register(new ResourceLocation(BlockArmor.MODID, "hoarder_container_9x1"), containerType_9x1);
+				containerType_9x2 = IForgeMenuType.create(HoarderContainer::createContainerClientSide);
+				helper.register(new ResourceLocation(BlockArmor.MODID, "hoarder_container_9x2"), containerType_9x2);
+				containerType_9x3 = IForgeMenuType.create(HoarderContainer::createContainerClientSide);
+				helper.register(new ResourceLocation(BlockArmor.MODID, "hoarder_container_9x3"), containerType_9x3);
+				containerType_9x4 = IForgeMenuType.create(HoarderContainer::createContainerClientSide);
+				helper.register(new ResourceLocation(BlockArmor.MODID, "hoarder_container_9x4"), containerType_9x4);
+				containerType_9x5 = IForgeMenuType.create(HoarderContainer::createContainerClientSide);
+				helper.register(new ResourceLocation(BlockArmor.MODID, "hoarder_container_9x5"), containerType_9x5);
+				containerType_9x6 = IForgeMenuType.create(HoarderContainer::createContainerClientSide);
+				helper.register(new ResourceLocation(BlockArmor.MODID, "hoarder_container_9x6"), containerType_9x6);
+			});
 		}
 
 	}

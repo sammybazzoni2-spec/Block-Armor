@@ -2,12 +2,17 @@ package twopiradians.blockArmor.common.seteffect;
 
 import java.util.List;
 
-import com.google.gson.JsonObject;
+import java.util.function.Supplier;
+
+import com.google.common.base.Suppliers;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -28,7 +33,7 @@ import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.common.loot.GlobalLootModifierSerializer;
+import net.minecraftforge.common.loot.IGlobalLootModifier;
 import net.minecraftforge.common.loot.LootModifier;
 import net.minecraftforge.event.entity.living.LootingLevelEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -79,13 +84,16 @@ public class SetEffectLucky extends SetEffect {
 
 	public static class SetEffectLuckyModifier extends LootModifier {
 
+		public static final Supplier<Codec<SetEffectLuckyModifier>> CODEC = Suppliers.memoize(() -> 
+			RecordCodecBuilder.create(inst -> codecStart(inst).apply(inst, SetEffectLuckyModifier::new)));
+
 		protected SetEffectLuckyModifier(LootItemCondition[] conditionsIn) {
 			super(conditionsIn);
 		}
 
 		/**Increase fortune*/
 		@Override
-		protected List<ItemStack> doApply(List<ItemStack> generatedLoot, LootContext context) {
+		protected ObjectArrayList<ItemStack> doApply(ObjectArrayList<ItemStack> generatedLoot, LootContext context) {
 			Entity entityIn = context.getParamOrNull(LootContextParams.THIS_ENTITY);
 			if (entityIn instanceof LivingEntity && 
 					ArmorSet.getWornSetEffects((LivingEntity) entityIn).contains(SetEffect.LUCKY)) {
@@ -117,18 +125,9 @@ public class SetEffectLucky extends SetEffect {
 			return generatedLoot;
 		}
 
-		public static class Serializer extends GlobalLootModifierSerializer<SetEffectLuckyModifier> {
-
-			@Override
-			public SetEffectLuckyModifier read(ResourceLocation location, JsonObject object, LootItemCondition[] conditions) {
-				return new SetEffectLuckyModifier(conditions);
-			}
-
-			@Override
-			public JsonObject write(SetEffectLuckyModifier instance) {
-				return this.makeConditions(instance.conditions);
-			}
-
+		@Override
+		public Codec<? extends IGlobalLootModifier> codec() {
+			return CODEC.get();
 		}
 
 	}

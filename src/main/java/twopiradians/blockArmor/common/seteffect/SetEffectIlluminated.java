@@ -1,10 +1,9 @@
 package twopiradians.blockArmor.common.seteffect;
 
-import java.util.UUID;
+import net.minecraft.network.chat.Component;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -44,8 +43,8 @@ public class SetEffectIlluminated extends SetEffect {
 				!world.isClientSide && BlockArmor.key.isKeyDown(player) && !player.getCooldowns().isOnCooldown(stack.getItem())) {
 			boolean deactivated = !stack.getTag().getBoolean("deactivated");
 			stack.getTag().putBoolean("deactivated", deactivated);
-			player.sendMessage(new TranslatableComponent(ChatFormatting.GRAY+""+ChatFormatting.ITALIC+"Illuminated set effect "
-					+ (deactivated ? ChatFormatting.RED+""+ChatFormatting.ITALIC+"disabled" : ChatFormatting.GREEN+""+ChatFormatting.ITALIC+"enabled")), UUID.randomUUID());
+			player.sendSystemMessage(Component.literal(ChatFormatting.GRAY+""+ChatFormatting.ITALIC+"Illuminated set effect "
+					+ (deactivated ? ChatFormatting.RED+""+ChatFormatting.ITALIC+"disabled" : ChatFormatting.GREEN+""+ChatFormatting.ITALIC+"enabled")));
 			this.setCooldown(player, 10);
 		}
 

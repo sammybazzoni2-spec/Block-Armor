@@ -1,7 +1,7 @@
 package twopiradians.blockArmor.common.seteffect;
 
+import net.minecraft.network.chat.Component;
 import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.SimpleMenuProvider;
@@ -32,7 +32,7 @@ public class SetEffectEnder_Hoarder extends SetEffect {
 			if (!(player.containerMenu instanceof ChestMenu)) {
 				player.openMenu(new SimpleMenuProvider((id, inventory, playerIn) -> {
 		               return ChestMenu.threeRows(id, inventory, player.getEnderChestInventory());
-		            }, new TranslatableComponent("container.enderchest")));
+		            }, Component.translatable("container.enderchest")));
 				this.damageArmor(player, 1, false);
 			}
 		}

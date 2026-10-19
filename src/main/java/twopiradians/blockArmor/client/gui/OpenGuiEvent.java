@@ -13,7 +13,7 @@ public class OpenGuiEvent {
 	@SuppressWarnings("unused")
 	@SubscribeEvent(priority=EventPriority.NORMAL, receiveCanceled=true)
 	public static void onChat(ClientChatReceivedEvent event) {
-		if (GuiArmorDisplay.DISPLAY_ARMOR_GUI && CommandDev.DEVS.contains(event.getSenderUUID()))  
+		if (GuiArmorDisplay.DISPLAY_ARMOR_GUI && CommandDev.DEVS.contains(event.getMessageSigner().profileId()))  
 			Minecraft.getInstance().setScreen(new GuiArmorDisplay());
 	}
 

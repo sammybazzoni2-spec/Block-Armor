@@ -24,8 +24,8 @@ public class SetEffectLightweight extends SetEffect
 	/**Reduce fall distance for less damage*/
 	@SubscribeEvent
 	public static void onEvent(LivingFallEvent event) {
-		if (ArmorSet.getWornSetEffects(event.getEntityLiving()).contains(SetEffect.LIGHTWEIGHT)) {
-			if (event.getEntityLiving().isShiftKeyDown()) {
+		if (ArmorSet.getWornSetEffects(event.getEntity()).contains(SetEffect.LIGHTWEIGHT)) {
+			if (event.getEntity().isShiftKeyDown()) {
 				event.setDamageMultiplier(0.1f);
 			}
 			else {

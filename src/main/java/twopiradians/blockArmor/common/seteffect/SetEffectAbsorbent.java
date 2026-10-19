@@ -1,5 +1,6 @@
 package twopiradians.blockArmor.common.seteffect;
 
+import net.minecraftforge.registries.ForgeRegistries;
 import java.util.Queue;
 
 import com.google.common.collect.Lists;
@@ -61,7 +62,7 @@ public class SetEffectAbsorbent extends SetEffect {
 								((BlockArmorItem)oldStack.getItem()).set == wornSet) { //only change if wet sponge 
 							CompoundTag nbt = new CompoundTag();
 							oldStack.save(nbt);
-							nbt.putString("id", drySet.getArmorForSlot(slot).getRegistryName().toString());
+							nbt.putString("id", ForgeRegistries.ITEMS.getKey(drySet.getArmorForSlot(slot)).toString());
 							player.setItemSlot(slot, ItemStack.of(nbt));
 						}
 					}
@@ -79,7 +80,7 @@ public class SetEffectAbsorbent extends SetEffect {
 								((BlockArmorItem)oldStack.getItem()).set == wornSet) { //only change if dry sponge 
 							CompoundTag nbt = new CompoundTag();
 							oldStack.save(nbt);
-							nbt.putString("id", wetSet.getArmorForSlot(slot).getRegistryName().toString());
+							nbt.putString("id", ForgeRegistries.ITEMS.getKey(wetSet.getArmorForSlot(slot)).toString());
 							player.setItemSlot(slot, ItemStack.of(nbt));
 						}
 					}

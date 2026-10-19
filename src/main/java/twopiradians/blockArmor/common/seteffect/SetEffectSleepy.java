@@ -3,7 +3,6 @@ package twopiradians.blockArmor.common.seteffect;
 import java.lang.reflect.Method;
 
 import net.minecraft.ChatFormatting;
-import net.minecraft.network.protocol.game.ClientboundCustomSoundPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -54,12 +53,12 @@ public class SetEffectSleepy extends SetEffect {
 				}
 
 				if (player instanceof ServerPlayer) 
-					((ServerPlayer)player).connection.send(new ClientboundCustomSoundPacket(SoundEvents.NOTE_BLOCK_CHIME.getRegistryName(), SoundSource.PLAYERS, player.position(), 0.5F, 1.4f));	
+					((ServerPlayer)player).playNotifySound(SoundEvents.NOTE_BLOCK_CHIME, SoundSource.PLAYERS, 0.5F, 1.4f);	
 				this.setCooldown(player, 100);
 			}
 			// not night time
 			else if (player instanceof ServerPlayer) {
-				((ServerPlayer)player).connection.send(new ClientboundCustomSoundPacket(SoundEvents.NOTE_BLOCK_BASS.getRegistryName(), SoundSource.PLAYERS, player.position(), 1.0F, world.random.nextFloat() + 0.5F));
+				((ServerPlayer)player).playNotifySound(SoundEvents.NOTE_BLOCK_BASS, SoundSource.PLAYERS, 1.0F, world.random.nextFloat() + 0.5F);
 				this.setCooldown(player, 10);
 			}
 		}
