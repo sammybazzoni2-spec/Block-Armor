@@ -96,9 +96,12 @@ tasks.named('jar', Jar).configure {
                 'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
         ])
     }
+}
 
-    // This is the preferred method to reobfuscate your jar file
-    finalizedBy 'reobfJar'
+// Reobfuscate the jar if this ForgeGradle version provides a reobfJar task (1.21.1 ForgeGradle may not)
+afterEvaluate {
+    if (tasks.names.contains('reobfJar'))
+        tasks.named('jar').configure { finalizedBy 'reobfJar' }
 }
 
 publishing {
