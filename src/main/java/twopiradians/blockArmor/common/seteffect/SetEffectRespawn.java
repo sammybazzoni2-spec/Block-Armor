@@ -48,8 +48,9 @@ public class SetEffectRespawn extends SetEffect {
 					if (respawnPos == null)
 						respawnPos = respawnWorld.getSharedSpawnPos();
 					if (respawnWorld != player.level()) {
-						player.handleInsidePortal(player.blockPosition());
-						player.changeDimension(respawnWorld);
+						player.changeDimension(new net.minecraft.world.level.portal.DimensionTransition(respawnWorld, player.position(), 
+								net.minecraft.world.phys.Vec3.ZERO, player.getYRot(), player.getXRot(), false, 
+								net.minecraft.world.level.portal.DimensionTransition.DO_NOTHING));
 					}
 					player.moveTo(respawnPos.getX(), respawnPos.getY(), respawnPos.getZ(), 0, 0);
 					player.setRespawnPosition(respawnWorld.dimension(), respawnPos, player.getRespawnAngle(), player.isRespawnForced(), false);

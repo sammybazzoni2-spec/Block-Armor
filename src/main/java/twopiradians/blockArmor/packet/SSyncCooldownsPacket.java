@@ -44,7 +44,7 @@ public class SSyncCooldownsPacket {
 				buf.writeInt(packet.ticks);
 				buf.writeInt(packet.cooldowns.size());
 				for (Item item : packet.cooldowns.keySet()) {
-					buf.writeItem(new ItemStack(item));
+					buf.writeResourceLocation(net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(item));
 					ItemCooldowns.CooldownInstance cooldown = packet.cooldowns.get(item);
 					buf.writeInt(COOLDOWNS_CREATE_TICKS_FIELD.getInt(cooldown));
 					buf.writeInt(COOLDOWNS_EXPIRE_TICKS_FIELD.getInt(cooldown));
@@ -63,7 +63,7 @@ public class SSyncCooldownsPacket {
 			packet.ticks = buf.readInt();
 			int count = buf.readInt();
 			for (int i=0; i<count; ++i) 
-				packet.cooldowns.put(buf.readItem().getItem(),
+				packet.cooldowns.put(net.minecraft.core.registries.BuiltInRegistries.ITEM.get(buf.readResourceLocation()),
 						COOLDOWNS_CONSTRUCTOR.newInstance(buf.readInt(), buf.readInt()));
 		}
 		catch (Exception e) {

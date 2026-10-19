@@ -53,6 +53,7 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus;
 import net.minecraftforge.fml.util.ObfuscationReflectionHelper;
 import net.minecraftforge.server.ServerLifecycleHooks;
+import net.minecraft.world.SimpleContainer;
 import twopiradians.blockArmor.common.BlockArmor;
 import twopiradians.blockArmor.utils.ItemData;
 import twopiradians.blockArmor.common.item.ArmorSet;
@@ -213,6 +214,25 @@ public class SetEffectHoarder extends SetEffect {
 	}
 
 	/**Get all stacks stored in this player's Hoarder items*/
+	public static NonNullList<ItemStack> getStoredItems(Player player) {
+		NonNullList<ItemStack> stacks = NonNullList.create();
+		for (ItemStack wornItem : ArmorSet.getAllSetItems(player, SetEffect.HOARDER))
+			stacks.addAll(getStoredItems(wornItem));
+		return stacks;
+	}
+
+	/**Set stored stacks for this player's Hoarder items*/
+	public static void setStoredItems(Player player, ItemStack[] stacks) {
+		int index = 0;
+		for (ItemStack wornItem : ArmorSet.getAllSetItems(player, SetEffect.HOARDER)) {
+			int size = SLOT_TO_SIZE.get(((BlockArmorItem)wornItem.getItem()).getSlot());
+			if (index + size <= stacks.length) 
+				dirtyItems.put(wornItem, Arrays.copyOfRange(stacks, index, index+size));
+			index += size;
+		}
+	}
+
+	/**Get stacks stored in this Hoarder item*/
 	public static NonNullList<ItemStack> getStoredItems(ItemStack wornItem) {
 		NonNullList<ItemStack> stacks = NonNullList.withSize(SLOT_TO_SIZE.get(((BlockArmorItem)wornItem.getItem()).getSlot()), ItemStack.EMPTY);
 		if (wornItem != null && !wornItem.isEmpty() && ItemData.has(wornItem, BlockArmor.MODID+":hoarderItems")) {

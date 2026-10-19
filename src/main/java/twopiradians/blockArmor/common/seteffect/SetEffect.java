@@ -310,7 +310,7 @@ public class SetEffect {
 	public static void onEquipmentChange(LivingEquipmentChangeEvent event) {
 		HashSet<SetEffect> effects = ArmorSet.getWornSetEffects(event.getEntity());
 		for (EquipmentSlot slot : EquipmentSlot.values())
-			if (slot.getType() == Type.ARMOR) {
+			if (slot.getType() == Type.HUMANOID_ARMOR) {
 				ItemStack stack = event.getEntity().getItemBySlot(slot);
 				if (stack == event.getFrom())
 					stack = event.getTo();

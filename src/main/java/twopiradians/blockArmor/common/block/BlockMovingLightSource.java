@@ -28,10 +28,17 @@ import twopiradians.blockArmor.common.tileentity.TileEntityMovingLightSource;
 /**Used for armor sets that produce light*/
 public class BlockMovingLightSource extends BaseEntityBlock {
 
+	public static final com.mojang.serialization.MapCodec<BlockMovingLightSource> CODEC = com.mojang.serialization.MapCodec.unit(BlockMovingLightSource::new);
+
 	public static final Property<Integer> LIGHT_LEVEL = IntegerProperty.create("light_level", 1, 15);
 
 	public BlockMovingLightSource() {
 		super(BlockBehaviour.Properties.of().replaceable().noCollission().noLootTable().lightLevel((state) -> state.getValue(LIGHT_LEVEL).intValue()));
+	}
+
+	@Override
+	protected com.mojang.serialization.MapCodec<? extends BaseEntityBlock> codec() {
+		return CODEC;
 	}
 
 	@Override

@@ -682,7 +682,7 @@ public class ArmorSet {
 					block == Blocks.BARRIER || 
 					block instanceof SlabBlock || 
 					block instanceof InfestedBlock ||
-					block.getRenderShape(block.defaultBlockState()) != RenderShape.MODEL ||
+					block.defaultBlockState().getRenderShape() != RenderShape.MODEL ||
 					block == Blocks.IRON_BLOCK || 
 					block == Blocks.GOLD_BLOCK || 
 					block == Blocks.DIAMOND_BLOCK ||

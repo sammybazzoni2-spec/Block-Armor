@@ -32,7 +32,7 @@ public class SetEffectArrow_Defence extends SetEffect {
 			int numArrows = 16;
 			for(int i = 0; i < numArrows; i++) {
 				ArrowItem itemArrow = (ArrowItem) Items.ARROW;
-				AbstractArrow entityArrow = itemArrow.createArrow(world, new ItemStack(itemArrow), player);
+				AbstractArrow entityArrow = itemArrow.createArrow(world, new ItemStack(itemArrow), player, null);
 				entityArrow.shootFromRotation(player, 0.0F, player.getYRot() + i*(360/numArrows), 0.0F, 2.0F, 0.0F);
 				entityArrow.pickup = Arrow.Pickup.DISALLOWED;
 				world.addFreshEntity(entityArrow);

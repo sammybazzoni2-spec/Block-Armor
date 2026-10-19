@@ -32,14 +32,14 @@ public class SetEffectFiery extends SetEffect {
 					attacker.level().playSound(null, attacker.getX(), 
 							attacker.getY(), attacker.getZ(), SoundEvents.FIRECHARGE_USE, 
 							SoundSource.PLAYERS, 0.2f, 1.0f);
-				attacker.setSecondsOnFire(5);
+				attacker.igniteForSeconds(5);
 			}
 			//Lights the target of the wearer when the wearer attacks
 			if (ArmorSet.hasSetEffect(attacker, SetEffect.FIERY) && !attacked.isInWater())	{
 				if (!attacked.isOnFire() && !attacked.fireImmune())
 					attacker.level().playSound(null, attacked.getX(), attacked.getY(), attacked.getZ(), 
 							SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 0.4f, 1.0f);
-				attacked.setSecondsOnFire(5);
+				attacked.igniteForSeconds(5);
 			}
 		}
 	}

@@ -7,7 +7,7 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.resources.DefaultPlayerSkin;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.resources.PlayerSkin;
 import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.Team;
 
@@ -27,17 +27,17 @@ public class EntityGuiPlayer extends AbstractClientPlayer {
 	}
 
 	@Override
-	public Team getTeam() {
+	public PlayerTeam getTeam() {
 		return team;
 	}
 
 	@Override
-	public ResourceLocation getSkinTextureLocation() {
+	public PlayerSkin getSkin() {
 		if (player != null) {
 			PlayerInfo networkplayerinfo = this.getPlayerInfo();
-			return networkplayerinfo == null ? DefaultPlayerSkin.getDefaultSkin(this.getUUID()) : networkplayerinfo.getSkinLocation();
+			return networkplayerinfo == null ? DefaultPlayerSkin.get(this.getUUID()) : networkplayerinfo.getSkin();
 		}
 		else 
-			return super.getSkinTextureLocation();
+			return super.getSkin();
 	}
 }

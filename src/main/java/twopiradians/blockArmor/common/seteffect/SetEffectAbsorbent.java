@@ -105,7 +105,7 @@ public class SetEffectAbsorbent extends SetEffect {
 	            BlockState blockstate = worldIn.getBlockState(blockpos1);
 	            FluidState fluidstate = worldIn.getFluidState(blockpos1);
 	            if (fluidstate.is(FluidTags.WATER) && player.mayUseItemAt(blockpos1, Direction.UP, stack)) {
-	               if (blockstate.getBlock() instanceof BucketPickup && !((BucketPickup)blockstate.getBlock()).pickupBlock(worldIn, blockpos1, blockstate).isEmpty()) {
+	               if (blockstate.getBlock() instanceof BucketPickup && !((BucketPickup)blockstate.getBlock()).pickupBlock(null, worldIn, blockpos1, blockstate).isEmpty()) {
 	                  ++i;
 	                  if (j < 6) {
 	                     queue.add(new Tuple<>(blockpos1, j + 1));

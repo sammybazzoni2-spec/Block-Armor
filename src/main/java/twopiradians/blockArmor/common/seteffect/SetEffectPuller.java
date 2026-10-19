@@ -37,7 +37,7 @@ public class SetEffectPuller extends SetEffect {
 				Iterator<Entity> iterator = list.iterator();            
 				while (iterator.hasNext()) {
 					Entity entityCollided = iterator.next();
-					if (!entityCollided.ignoreExplosion() && !(entityCollided instanceof ItemFrame)) {
+					if (!(entityCollided instanceof ItemFrame)) {
 						double xVel = entityCollided.getX() - player.getX();
 						double yVel = entityCollided.getY() - player.getY();
 						double zVel = entityCollided.getZ() - player.getZ();

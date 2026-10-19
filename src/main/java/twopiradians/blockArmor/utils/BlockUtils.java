@@ -1,7 +1,7 @@
 package twopiradians.blockArmor.utils;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.block.AbstractGlassBlock;
+import net.minecraft.world.level.block.TransparentBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.StainedGlassPaneBlock;
@@ -13,7 +13,7 @@ public class BlockUtils {
 
 	/**Get block properties*/
 	public static BlockBehaviour.Properties getProperties(Block block) {
-		return BlockBehaviour.Properties.copy(block);
+		return BlockBehaviour.Properties.ofFullCopy(block);
 	}
 
 	/**Get hardness of a block*/
@@ -57,7 +57,7 @@ public class BlockUtils {
 	/**Is this block glass (replaces Material.BUILDABLE_GLASS / GLASS checks)*/
 	public static boolean isGlass(Block block) {
 		BlockState state = block.defaultBlockState();
-		return block instanceof AbstractGlassBlock || block instanceof StainedGlassPaneBlock || 
+		return block instanceof TransparentBlock || block instanceof StainedGlassPaneBlock || 
 				state.getSoundType() == SoundType.GLASS;
 	}
 
