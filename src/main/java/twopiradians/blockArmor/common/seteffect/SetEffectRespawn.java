@@ -53,7 +53,7 @@ public class SetEffectRespawn extends SetEffect {
 					}
 					player.moveTo(respawnPos.getX(), respawnPos.getY(), respawnPos.getZ(), 0, 0);
 					player.setRespawnPosition(respawnWorld.dimension(), respawnPos, player.getRespawnAngle(), player.isRespawnForced(), false);
-					player.connection.send(new ClientboundRespawnPacket(player.level.dimensionType(), player.level.dimension(), BiomeManager.obfuscateSeed(player.getLevel().getSeed()), player.gameMode.getGameModeForPlayer(), player.gameMode.getPreviousGameModeForPlayer(), player.getLevel().isDebug(), player.getLevel().isFlat(), true));
+					player.connection.send(new ClientboundRespawnPacket(player.level.dimensionTypeId(), player.level.dimension(), BiomeManager.obfuscateSeed(player.getLevel().getSeed()), player.gameMode.getGameModeForPlayer(), player.gameMode.getPreviousGameModeForPlayer(), player.getLevel().isDebug(), player.getLevel().isFlat(), true, java.util.Optional.empty()));
 					player.connection.teleport(player.getX(), player.getY(), player.getZ(), player.getYRot(), player.getXRot());
 					player.connection.send(new ClientboundSetDefaultSpawnPositionPacket(respawnWorld.getSharedSpawnPos(), respawnWorld.getSharedSpawnAngle()));
 					player.connection.send(new ClientboundSetExperiencePacket(player.experienceProgress, player.totalExperience, player.experienceLevel));
@@ -61,7 +61,7 @@ public class SetEffectRespawn extends SetEffect {
 					// cooldown, damage, sound
 					SetEffect.RESPAWN.setCooldown(player, 6000);
 					SetEffect.RESPAWN.damageArmor(player, 100, true);
-					player.connection.send(new ClientboundSoundPacket(SoundEvents.RESPAWN_ANCHOR_DEPLETE, SoundSource.BLOCKS, (double)player.getX(), (double)player.getY(), (double)player.getZ(), 1.0F, 1.0F));
+					player.connection.send(new ClientboundSoundPacket(SoundEvents.RESPAWN_ANCHOR_DEPLETE, SoundSource.BLOCKS, (double)player.getX(), (double)player.getY(), (double)player.getZ(), 1.0F, 1.0F, player.getRandom().nextLong()));
 					// cancel event so player doesn't die
 					event.setCanceled(true);
 				}

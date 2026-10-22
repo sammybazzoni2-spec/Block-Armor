@@ -66,7 +66,7 @@ public class ModelBAArmor<T extends LivingEntity> extends HumanoidModel<T> {
 	public int remodelOffset; 
 
 	public ModelBAArmor(int textureHeight, int textureWidth, int currentFrame, int nextFrame, EquipmentSlot slot) { 
-		super(new EntityRendererProvider.Context(Minecraft.getInstance().getEntityRenderDispatcher(), Minecraft.getInstance().getItemRenderer(), Minecraft.getInstance().getResourceManager(), Minecraft.getInstance().getEntityModels(), Minecraft.getInstance().font).bakeLayer(ModelLayers.PLAYER_INNER_ARMOR));
+		super(Minecraft.getInstance().getEntityModels().bakeLayer(ModelLayers.PLAYER_INNER_ARMOR));
 		int size = Math.max(1, textureWidth / 16);
 		this.textureHeight = textureHeight / size;
 		this.textureWidth = textureWidth / size;

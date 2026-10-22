@@ -27,7 +27,7 @@ import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.OreBlock;
+import net.minecraft.world.level.block.DropExperienceBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
@@ -107,7 +107,7 @@ public class SetEffectLucky extends SetEffect {
 					for (ItemStack stack : generatedLoot)
 						if (stack != null && stack.getItem() == item)
 							return generatedLoot;
-				if (pos != null && state != null && state.getBlock() instanceof OreBlock &&
+				if (pos != null && state != null && state.getBlock() instanceof DropExperienceBlock &&
 						(tool == null || EnchantmentHelper.getItemEnchantmentLevel(Enchantments.SILK_TOUCH, tool) <= 0)) {
 					int beforeCount = 0;
 					int afterCount = 0;

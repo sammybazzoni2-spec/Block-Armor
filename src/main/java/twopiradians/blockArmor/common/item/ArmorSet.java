@@ -50,7 +50,7 @@ import net.minecraft.world.level.block.BushBlock;
 import net.minecraft.world.level.block.CropBlock;
 import net.minecraft.world.level.block.InfestedBlock;
 import net.minecraft.world.level.block.LiquidBlock;
-import net.minecraft.world.level.block.OreBlock;
+import net.minecraft.world.level.block.DropExperienceBlock;
 import net.minecraft.world.level.block.RedstoneLampBlock;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.ShulkerBoxBlock;
@@ -673,7 +673,7 @@ public class ArmorSet {
 			// bad blocks
 			if (block instanceof LiquidBlock || 
 					block instanceof BaseEntityBlock || 
-					block instanceof OreBlock || 
+					block instanceof DropExperienceBlock || 
 					block instanceof CropBlock || 
 					block instanceof BushBlock ||
 					block == Blocks.BARRIER || 
