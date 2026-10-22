@@ -14,6 +14,7 @@ import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.client.resources.model.ModelResourceLocation;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 import net.minecraft.util.Tuple;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
@@ -21,6 +22,7 @@ import net.minecraft.world.level.Level;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.ModelEvent;
+import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import net.minecraftforge.client.event.TextureStitchEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -93,6 +95,12 @@ public class ClientProxy {
 				models.put(new ModelResourceLocation(ForgeRegistries.ITEMS.getKey(item), "inventory"), ModelBAItem.createModel());
 			ModItems.registerRenders();
 			ModBlocks.registerRenders();
+		}
+
+		/**Map textures and create inventory icons after models are baked (this listener is registered after the ModelManager, so it runs after it)*/
+		@SubscribeEvent
+		public static void registerReloadListener(RegisterClientReloadListenersEvent event) {
+			event.registerReloadListener((ResourceManagerReloadListener) resourceManager -> mapTextures());
 		}
 
 		@SubscribeEvent
